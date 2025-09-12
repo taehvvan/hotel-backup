@@ -1,5 +1,3 @@
-# hotel-reservation
-
 [문서](https://github.com/taehvvan/hotel-reservation-document)
 
 
