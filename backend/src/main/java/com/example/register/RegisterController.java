@@ -1,4 +1,4 @@
-package com.example.backend;
+package com.example.register;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +15,7 @@ public class RegisterController {
     private UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<ResponseMessage> registerUser(@RequestBody User user) {
+    public ResponseEntity<ResponseMessage> registerUser(@RequestBody UserDTO user) {
         try {
             boolean isRegistered = userService.registerUser(user);
 

@@ -1,4 +1,4 @@
-package com.example.backend;
+package com.example.register;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,7 +9,7 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    public boolean registerUser(User user) {
+    public boolean registerUser(UserDTO user) {
         try {
             // 사용자 저장
             userRepository.save(user);
