@@ -1,52 +1,7 @@
 <template>
   <div class="page-container">
-    <section class="search-section" ref="searchSectionRef">
-      <div class="content-wrapper">
-        <div class="main-search-bar">
-          <div class="search-input-group destination">
-            <span class="icon-location">📍</span>
-            <input
-              type="text"
-              placeholder="어디로 떠날까요?"
-              v-model="searchQuery.destination"
-              @focus="closeAllPopups"
-            />
-          </div>
-  
-          <div class="search-input-group dates" @click.stop="toggleCalendar" ref="calendarBtn">
-            <span class="icon-calendar">🗓️</span>
-            <span class="date-text">{{ checkInText }}</span>
-            <span class="date-separator">-</span>
-            <span class="date-text">{{ checkOutText }}</span>
-            <span class="nights-badge">{{ nights }}박</span>
-          </div>
-  
-          <div class="search-input-group guests" @click.stop="toggleGuestSelector" ref="guestBtn">
-            <span class="icon-guests">👥</span>
-            <span>성인 {{ searchQuery.adults }}명, 어린이 {{ searchQuery.children }}명</span>
-          </div>
-  
-          <button type="button" class="search-button" @click="executeSearch">
-            <span class="icon-search">🔍</span>
-            검색
-          </button>
-        </div>
-      </div>
-    </section>
-  
-    <nav class="type-nav">
-      <div class="content-wrapper">
-        <button
-          :class="{ active: activeNav === '호텔' }"
-          @click="activeNav = '호텔'">호텔</button>
-        <button
-          :class="{ active: activeNav === '모텔' }"
-          @click="activeNav = '모텔'">모텔</button>
-        <button
-          :class="{ active: activeNav === '한옥' }"
-          @click="activeNav = '한옥'">한옥</button>
-      </div>
-    </nav>
+
+    <SearchBar />
   
     <div class="search-result-container">
       <div class="filters-column">
@@ -58,7 +13,7 @@
         <div class="filter-group">
           <h5>숙소 유형</h5>
           <div class="type-button-group">
-            <button class="type-filter-btn active">호텔</button>
+            <button class="type-filter-btn">호텔</button>
             <button class="type-filter-btn">모텔</button>
             <button class="type-filter-btn">한옥</button>
             <button class="type-filter-btn">펜션/풀빌라</button>
@@ -104,7 +59,7 @@
   
       <div class="results-main-panel">
         <div class="search-summary">
-          <h2><strong>'{{ pageTitleDestination }}'</strong> 검색 결과</h2>
+          <h2><strong>'{{ destination }}'</strong> 검색 결과</h2>
           <div class="sort-options">
             <select>
               <option>추천순</option>
@@ -116,51 +71,61 @@
         </div>
   
         <div class="results-list">
-          <router-link
-            v-for="item in searchResults"
-            :key="item.id"
-            :to="{ name: 'HotelDetail', params: { id: item.id } }"
-            class="result-card"
-          >
-            <div class="result-card-inner">
-              <div class="image-wrapper">
-                <img :src="item.image" :alt="item.name">
-              </div>
-              <div class="info-wrapper">
-                <div class="info-header">
-                  <div class="info-badges">
-                    <span class="item-type">{{ item.type }}</span>
+          <!-- 검색 결과가 있을 때 -->
+          <div v-if="searchResults.length > 0">
+            <router-link
+              v-for="item in searchResults"
+              :key="item.hid"
+              :to="{ name: 'HotelDetail', params: { id: item.hid } }"
+              class="result-card"
+            >
+              <div class="result-card-inner">
+                <div class="image-wrapper">
+                  <!-- <img :src="item.image" :alt="item.name"> -->
+                  <img :src="a" :alt="item.hname">
+                </div>
+                <div class="info-wrapper">
+                  <div class="info-header">
+                    <div class="info-badges">
+                      <!-- <span class="item-type">{{ item.type }}</span> -->
+                      <span class="item-type">호텔</span>
+                    </div>
+                    <h3>{{ item.hname }}</h3>
                   </div>
-                  <h3>{{ item.name }}</h3>
-                </div>
-                <div class="rating-section">
-                  <div class="rating-card">
-                    <span class="score-badge">{{ item.rating.toFixed(1) }}</span>
-                    <span class="rating-text">{{ getRatingText(item.rating) }}</span>
+                  <div class="rating-section">
+                    <div class="rating-card">
+                      <!-- <span class="score-badge">{{ item.rating.toFixed(1) }}</span>
+                      <span class="rating-text">{{ getRatingText(item.rating) }}</span> -->
+                    </div>
+                    <!-- <span class="review-count">({{ item.reviews.toLocaleString() }}개 후기)</span> -->
                   </div>
-                  <span class="review-count">({{ item.reviews.toLocaleString() }}개 후기)</span>
+                  <div class="details-group">
+                    <p class="grade">
+                      <!-- <span class="hotel-grade-stars">{{ '★'.repeat(item.stars) }}</span> {{ item.grade }} -->
+                    </p>
+                    <p class="location">
+                      <!-- <span class="location-icon">📍</span>{{ item.location }} -->
+                    </p>
+                    <p class="amenities">
+                      <!-- <strong>주요 편의시설:</strong> {{ item.amenities.join(', ') }} -->
+                    </p>
+                  </div>
                 </div>
-                <div class="details-group">
-                  <p class="grade">
-                    <span class="hotel-grade-stars">{{ '★'.repeat(item.stars) }}</span> {{ item.grade }}
-                  </p>
-                  <p class="location">
-                    <span class="location-icon">📍</span>{{ item.location }}
-                  </p>
-                  <p class="amenities">
-                    <strong>주요 편의시설:</strong> {{ item.amenities.join(', ') }}
-                  </p>
+                <div class="price-wrapper">
+                  <button class="like-button" @click.prevent>♡</button>
+                  <div class="final-price-box">
+                    <span class="price-label">1박 최저가</span>
+                    <!-- <strong>{{ item.price.toLocaleString() }}원</strong> -->
+                  </div>
                 </div>
               </div>
-              <div class="price-wrapper">
-                <button class="like-button" @click.prevent>♡</button>
-                <div class="final-price-box">
-                  <span class="price-label">1박 최저가</span>
-                  <strong>{{ item.price.toLocaleString() }}원</strong>
-                </div>
-              </div>
-            </div>
-          </router-link>
+            </router-link>
+          </div>
+
+          <!-- 검색 결과가 없을 때 -->
+          <div v-else>
+            <p>죄송합니다, 검색 조건에 맞는 결과를 찾을 수 없습니다. 검색 조건을 변경 후 다시 조회해 주시기 바랍니다.</p>
+          </div>
         </div>
   
         <nav class="pagination">
@@ -174,149 +139,99 @@
         </nav>
       </div>
     </div>
-  
-    <Teleport to="body">
-      <div v-if="isCalendarOpen" class="calendar-popup" :style="popupPosition.calendar">
-        <div class="calendar-month">
-          <div class="month-name">2025년 9월</div>
-          <div class="days-header"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
-          <div class="days-grid">
-            <span class="day">...</span>
-          </div>
-        </div>
-        <div class="calendar-month">
-          <div class="month-name">2025년 10월</div>
-          <div class="days-header"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
-          <div class="days-grid">
-            <span class="day">...</span>
-          </div>
-        </div>
-      </div>
-      <div v-if="isGuestSelectorOpen" class="guest-selector-popup" :style="popupPosition.guest">
-        <div class="guest-row">
-          <span class="label">성인</span>
-          <div class="counter">
-            <button type="button" @click="searchQuery.adults > 1 && searchQuery.adults--">-</button>
-            <span>{{ searchQuery.adults }}</span>
-            <button type="button" @click="searchQuery.adults < 10 && searchQuery.adults++">+</button>
-          </div>
-        </div>
-        <div class="guest-row">
-          <span class="label">어린이</span>
-          <div class="counter">
-            <button type="button" @click="searchQuery.children > 0 && searchQuery.children--">-</button>
-            <span>{{ searchQuery.children }}</span>
-            <button type="button" @click="searchQuery.children < 5 && searchQuery.children++">+</button>
-          </div>
-        </div>
-        <div class="guest-actions">
-          <button type="button" class="confirm-btn" @click="closeAllPopups">확인</button>
-        </div>
-      </div>
-    </Teleport>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-  
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import SearchBar from './SearchBar.vue';
+
 // --- 검색창 로직 (전체) ---
-const searchSectionRef = ref(null);
 const calendarBtn = ref(null);
 const guestBtn = ref(null);
-const isCalendarOpen = ref(false);
-const isGuestSelectorOpen = ref(false);
-const popupPosition = ref({ calendar: {}, guest: {} });
-  
-const route = useRoute();
-const router = useRouter();
 
-const searchQuery = ref({
-  destination: '',
-  checkIn: null,
-  checkOut: null,
-  adults: 2,
-  children: 0,
-});
-  
-const calculatePopupPosition = () => {
-  if (isCalendarOpen.value && calendarBtn.value) {
-    const rect = calendarBtn.value.getBoundingClientRect();
-    popupPosition.value.calendar = {
-      top: `${rect.bottom + window.scrollY + 10}px`,
-      left: `${rect.left + window.scrollX}px`
-    };
-  }
-  if (isGuestSelectorOpen.value && guestBtn.value) {
-    const rect = guestBtn.value.getBoundingClientRect();
-    popupPosition.value.guest = {
-      top: `${rect.bottom + window.scrollY + 10}px`,
-      left: `${rect.left + window.scrollX}px`
-    };
-  }
-};
-  
-const closeAllPopups = () => {
-  isCalendarOpen.value = false;
-  isGuestSelectorOpen.value = false;
-};
-  
-const toggleCalendar = () => {
-  const wasOpen = isCalendarOpen.value;
-  closeAllPopups();
-  if (!wasOpen) {
-    isCalendarOpen.value = true;
-    nextTick(calculatePopupPosition);
-  }
-};
-  
-const toggleGuestSelector = () => {
-  const wasOpen = isGuestSelectorOpen.value;
-  closeAllPopups();
-  if (!wasOpen) {
-    isGuestSelectorOpen.value = true;
-    nextTick(calculatePopupPosition);
-  }
-};
-  
-const checkInText = computed(() => searchQuery.value.checkIn ? `${searchQuery.value.checkIn.getMonth() + 1}/${searchQuery.value.checkIn.getDate()}` : '날짜 선택');
-const checkOutText = computed(() => searchQuery.value.checkOut ? `${searchQuery.value.checkOut.getMonth() + 1}/${searchQuery.value.checkOut.getDate()}` : '날짜 선택');
-const nights = computed(() => {
-  if (searchQuery.value.checkIn && searchQuery.value.checkOut) {
-    const diff = Math.floor((searchQuery.value.checkOut - searchQuery.value.checkIn) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
-  }
-  return 0;
-});
-  
-const executeSearch = () => {
-  closeAllPopups();
-  router.push({
-    path: '/search',
-    query: {
-      destination: searchQuery.value.destination,
-      checkIn: searchQuery.value.checkIn ? searchQuery.value.checkIn.toISOString() : '',
-      checkOut: searchQuery.value.checkOut ? searchQuery.value.checkOut.toISOString() : '',
-      adults: searchQuery.value.adults,
-      children: searchQuery.value.children
-    }
-  });
-};
-  
-// --- 검색 결과 페이지 로직 ---
-const pageTitleDestination = ref('');
-const activeNav = ref('호텔');
+const route = useRoute();
+
+const destination = ref('');
+const checkIn = ref(null);
+const checkOut = ref(null);
+const rooms = ref(1);
+const persons = ref(2);
+
+const searchResults = ref([]);
 const priceRange = ref({ min: 50000, max: 750000 });
 const rating = ref(4.0);
+
+// URL 쿼리 파라미터를 변수에 로드하는 함수
+const loadSearchQueryFromUrl = () => {
+  const query = route.query;
+
+  destination.value = query.region || '';
   
-const searchResults = ref([
-  { id: 1, name: '서울 신라호텔', type: '호텔', stars: 5, grade: '5성급 호텔', location: '서울 중구', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', price: 450000, rating: 4.8, reviews: 1320, amenities: ['수영장', '피트니스', '주차 가능'] },
-  { id: 2, name: '가평 하늘숲 펜션', type: '펜션/풀빌라', stars: 0, grade: '펜션', location: '경기 가평군', image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', price: 210000, rating: 4.5, reviews: 580, amenities: ['개별바베큐', '수영장'] },
-  { id: 3, name: '롯데호텔 월드', type: '호텔', stars: 5, grade: '5성급 호텔', location: '서울 송파구', image: 'https://images.unsplash.com/photo-1542314831-068cd1dbb5eb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', price: 380000, rating: 3.7, reviews: 2150, amenities: ['피트니스', '조식포함'] },
-  { id: 4, name: '경주 한옥마을 스테이', type: '한옥', stars: 0, grade: '한옥 스테이', location: '경북 경주시', image: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', price: 180000, rating: 4.9, reviews: 980, amenities: ['주차 가능', '조식포함'] },
-]);
+  // URL에서 날짜 문자열을 Date 객체로 변환
+  checkIn.value = query.startDate ? new Date(query.startDate) : null;
+  checkOut.value = query.endDate ? new Date(query.endDate) : null;
   
+  rooms.value = Number(query.rooms) || 1;
+  persons.value = Number(query.persons) || 2;
+};
+
+// 검색 요청 함수
+const sendSearchRequest = async () => {
+  // 날짜 객체의 유효성을 확인
+  const validStartDate = checkIn.value instanceof Date && !isNaN(checkIn.value);
+  const validEndDate = checkOut.value instanceof Date && !isNaN(checkOut.value);
+
+  const requestBody = {
+    region: destination.value,
+    startDate: validStartDate ? checkIn.value.toISOString().split('T')[0] : null,
+    endDate: validEndDate ? checkOut.value.toISOString().split('T')[0] : null,
+    numberOfRooms: rooms.value,
+    numberOfPeople: persons.value,
+  };
+
+  console.log('백엔드로 보낼 검색 조건:', requestBody);
+
+  try {
+    const response = await fetch('http://localhost:8888/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.status === 204) {
+      searchResults.value = [];
+      return;
+    }
+
+    if (response.ok) {
+      const data = await response.json();
+      searchResults.value = data;
+      console.log('검색 결과:', data);
+    } else {
+      console.error('검색 실패:', response.statusText);
+      alert('검색 중 오류가 발생했습니다.');
+    }
+  } catch (error) {
+    console.error('API 호출 중 오류:', error);
+    alert('네트워크 오류가 발생했습니다.');
+  }
+};
+
+// URL 쿼리가 변경될 때마다 이 로직이 실행됩니다.
+// 컴포넌트 마운트 시에도 즉시 실행됩니다.
+watch(
+  () => route.query,
+  () => {
+    loadSearchQueryFromUrl();
+    sendSearchRequest();
+  },
+  { immediate: true, deep: true }
+);
+
+// --- 검색 결과 페이지 로직 ---
 const getRatingText = (rating) => {
   if (rating >= 4.5) return '최고에요';
   if (rating >= 4.0) return '아주 좋아요';
@@ -324,33 +239,6 @@ const getRatingText = (rating) => {
   return '보통이에요';
 };
 
-const loadSearchQueryFromUrl = () => {
-  const query = route.query;
-  searchQuery.value.destination = query.destination || '';
-  pageTitleDestination.value = query.destination || '전체';
-  
-  searchQuery.value.checkIn = query.checkIn ? new Date(query.checkIn) : null;
-  searchQuery.value.checkOut = query.checkOut ? new Date(query.checkOut) : null;
-  
-  searchQuery.value.adults = Number(query.adults) || 2;
-  searchQuery.value.children = Number(query.children) || 0;
-};
-  
-onMounted(() => {
-  loadSearchQueryFromUrl();
-  window.addEventListener('resize', calculatePopupPosition);
-});
-  
-onUnmounted(() => {
-  window.removeEventListener('resize', calculatePopupPosition);
-});
-
-watch(
-  () => route.query,
-  (newQuery) => {
-    loadSearchQueryFromUrl();
-  }
-);
 </script>
   
 <style scoped>
