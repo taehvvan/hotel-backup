@@ -11,7 +11,7 @@
       <div class="input-group">
         <input type="password" id="password" v-model="password" placeholder="비밀번호" required>
       </div>
-      <button type="button" class="btn-login-email" @click="handleEmailLogin">로그인</button>
+      <button type="button" class="btn-login-email" @click.prevent="handleEmailLogin">로그인</button>
 
       <div class="extra-links">
         <a href="#">비밀번호 찾기</a>
@@ -40,13 +40,32 @@
 
 <script setup>
 import { ref } from 'vue';
+import axios from 'axios'; // axios 라이브러리 추가
 
 const email = ref('');
 const password = ref('');
 
-const handleEmailLogin = () => {
-  alert(`${email.value}로 로그인을 시도합니다.`);
+const handleEmailLogin = async () => {
+  try {
+    const response = await axios.post('http://localhost:8888/api/auth/login', { // 백엔드 로그인 API 엔드포인트
+      email: email.value,
+      password: password.value
+    });
+    // 성공 시, JWT를 로컬 스토리지에 저장하고, 메인 페이지로 리디렉션
+    const token = response.data.accessToken;
+    localStorage.setItem('jwtToken', token);
+    alert('로그인 성공!');
+    router.push('/'); // vue-router 사용 시
+  } catch (error) {
+    if (error.response) {
+      // 서버에서 보낸 에러 메시지 처리
+      alert(`로그인 실패: ${error.response.data.message}`);
+    } else {
+      alert('로그인 요청 실패. 네트워크 상태를 확인해주세요.');
+    }
+  }
 };
+
 const handleKakaoLogin = () => {
   alert('카카오 로그인을 시도합니다.');
 };

@@ -1,4 +1,4 @@
-package com.example.register;
+package com.example.backend.register;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

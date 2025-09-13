@@ -1,4 +1,4 @@
-package com.example.login;
+package com.example.backend.login;
 
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -6,7 +6,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
-import com.example.register.UserEntity;
+import com.example.backend.register.UserEntity;
 
 @Service
 @RequiredArgsConstructor

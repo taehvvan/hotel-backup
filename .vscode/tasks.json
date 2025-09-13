@@ -8,7 +8,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/backend",
                 "shell": {
-                    "executable": "C:/XG5000/Drive_CM/cmd.exe",
+                    "executable": "C:\\Windows\\System32\\cmd.exe",
                     "args": [
                         "/c"
                     ]
@@ -23,7 +23,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/frontend",
                 "shell": {
-                    "executable": "C:/XG5000/Drive_CM/cmd.exe",
+                    "executable": "C:\\Windows\\System32\\cmd.exe",
                     "args": [
                         "/c"
                     ]

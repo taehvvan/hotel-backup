@@ -1,4 +1,4 @@
-package com.example.register;
+package com.example.backend.register;
 
 import lombok.Data;
 

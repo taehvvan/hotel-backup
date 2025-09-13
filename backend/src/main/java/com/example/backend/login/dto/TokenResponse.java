@@ -1,4 +1,4 @@
-package com.example.login.dto;
+package com.example.backend.login.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
