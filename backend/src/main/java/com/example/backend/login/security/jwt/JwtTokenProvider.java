@@ -64,6 +64,16 @@ public class JwtTokenProvider {
         return new UsernamePasswordAuthenticationToken(username, "", authorities);
     }
 
+    public String getUsernameFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.getSubject();
+    }
+
     // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
