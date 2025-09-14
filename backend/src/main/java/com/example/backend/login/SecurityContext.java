@@ -24,24 +24,20 @@ import java.util.Collections;
 @EnableWebSecurity
 public class SecurityContext {
 
-    public SecurityContext() {
-    }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // ❌ 여기서 UserDetailsService 정의하지 않음
+    // CustomUserDetailsService는 @Service 로 관리되게 두는 게 좋음
+
     @Bean
-    public UserDetailsService userDetailsService(LoginMapper loginMapper) {
-        return new CustomUserDetailsService(loginMapper);
-    }
-    
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
-    
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -54,14 +50,14 @@ public class SecurityContext {
         return source;
     }
 
-    // JwtAuthenticationFilter를 빈으로 등록
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
         return new JwtAuthenticationFilter(jwtTokenProvider);
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .httpBasic(httpBasic -> httpBasic.disable())
@@ -70,24 +66,18 @@ public class SecurityContext {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(
-                    "/api/auth/login",
-                    "/api/register",
-                    "/", "/search",
-                    "/hotel/**", "/landmark/**", "/heritage/**",
-                    "/terms", "/privacy",
-                    "/accommodations", "/landmarks", "/heritage",
-                    "/checkout-guest",
-                    "/images/**", "/css/**", "/js/**"
+                        "/api/auth/login",
+                        "/api/register",
+                        "/", "/search",
+                        "/hotel/**", "/landmark/**", "/heritage/**",
+                        "/terms", "/privacy",
+                        "/accommodations", "/landmarks", "/heritage",
+                        "/checkout-guest",
+                        "/images/**", "/css/**", "/js/**", "/error"
                 ).permitAll()
-                .requestMatchers(
-                    "/api/user/**", "/api/mypage", "/api/wishlist"
-                ).hasRole("USER")
-                .requestMatchers(
-                    "/api/manager/**"
-                ).hasRole("MANAGER")
-                .requestMatchers(
-                    "/api/admin/**"
-                ).hasRole("ADMIN")
+                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist").hasRole("USER")
+                .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

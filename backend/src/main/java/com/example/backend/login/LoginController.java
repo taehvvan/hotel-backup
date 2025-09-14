@@ -4,7 +4,7 @@ import com.example.backend.login.dto.LoginRequest;
 import com.example.backend.login.dto.TokenResponse;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy; // Lazy 임포트 추가
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,7 +23,7 @@ public class LoginController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    public LoginController(AuthenticationManager authenticationManager, @Lazy JwtTokenProvider jwtTokenProvider) {
+    public LoginController(@Lazy AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
     }
