@@ -41,26 +41,28 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios'; // axios 라이브러리 추가
+import { useRouter } from 'vue-router';
 
 const email = ref('');
 const password = ref('');
 
 const handleEmailLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:8888/api/auth/login', { // 백엔드 로그인 API 엔드포인트
+    const response = await axios.post('http://localhost:8888/api/auth/login', {
       email: email.value,
       password: password.value
     });
-    // 성공 시, JWT를 로컬 스토리지에 저장하고, 메인 페이지로 리디렉션
-    const token = response.data.accessToken;
+
+    const token = response.data.accessToken || response.data.token;
     localStorage.setItem('jwtToken', token);
-    alert('로그인 성공!');
-    router.push('/'); // vue-router 사용 시
+    console.log('로그인 성공, JWT:', token);
+    router.push('/'); 
   } catch (error) {
     if (error.response) {
-      // 서버에서 보낸 에러 메시지 처리
-      alert(`로그인 실패: ${error.response.data.message}`);
+      console.error('로그인 실패:', error.response.data);
+      alert(`로그인 실패: ${JSON.stringify(error.response.data)}`);
     } else {
+      console.error('요청 실패:', error);
       alert('로그인 요청 실패. 네트워크 상태를 확인해주세요.');
     }
   }

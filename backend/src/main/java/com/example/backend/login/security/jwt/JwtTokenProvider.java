@@ -12,6 +12,11 @@ import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
 import java.util.Base64;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import java.util.Collections;
+import java.util.List;
+import org.springframework.security.core.GrantedAuthority;
 
 @Component
 public class JwtTokenProvider {
@@ -31,24 +36,25 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
-        this.key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    // JWT 토큰 생성
     public String createToken(Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+    UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+    Date now = new Date();
+    Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
-        return Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS512)
-                .compact();
+    // JWT에 username과 role을 포함시켜 토큰 발급
+    return Jwts.builder()
+            .setSubject(userPrincipal.getUsername())
+            .claim("role", userPrincipal.getAuthorities().iterator().next().getAuthority())
+            .setIssuedAt(now)
+            .setExpiration(expiryDate)
+            .signWith(key, SignatureAlgorithm.HS512)
+            .compact();
     }
 
-    // JWT 토큰에서 인증 정보 추출
+
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -56,11 +62,15 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(claims.getSubject());
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+        String username = claims.getSubject();
+        String role = claims.get("role", String.class);
+
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+
+        return new UsernamePasswordAuthenticationToken(username, "", authorities);
     }
 
-    // JWT 토큰 유효성 검증
+
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);

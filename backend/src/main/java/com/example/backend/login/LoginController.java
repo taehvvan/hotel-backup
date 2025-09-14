@@ -1,5 +1,8 @@
 package com.example.backend.login;
 
+import com.example.backend.login.dto.LoginRequest;
+import com.example.backend.login.dto.TokenResponse;
+import com.example.backend.login.security.jwt.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy; // Lazy 임포트 추가
 import org.springframework.http.ResponseEntity;
@@ -12,10 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.backend.login.dto.LoginRequest;
-import com.example.backend.login.dto.TokenResponse;
-import com.example.backend.login.security.jwt.JwtTokenProvider;
-
 @RestController
 @RequestMapping("/api/auth")
 public class LoginController {
@@ -24,7 +23,7 @@ public class LoginController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    public LoginController(AuthenticationManager authenticationManager, @Lazy JwtTokenProvider jwtTokenProvider) { // @Lazy 추가
+    public LoginController(AuthenticationManager authenticationManager, @Lazy JwtTokenProvider jwtTokenProvider) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
     }

@@ -24,6 +24,9 @@ import java.util.Collections;
 @EnableWebSecurity
 public class SecurityContext {
 
+    public SecurityContext() {
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -51,6 +54,7 @@ public class SecurityContext {
         return source;
     }
 
+    // JwtAuthenticationFilter를 빈으로 등록
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
         return new JwtAuthenticationFilter(jwtTokenProvider);

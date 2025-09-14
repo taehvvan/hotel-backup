@@ -1,5 +1,7 @@
 package com.example.backend.login;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -7,6 +9,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import com.example.backend.register.UserEntity;
+import java.util.List;
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -23,12 +27,16 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + email);
         }
+
+        List<GrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority(user.getRole())
+        );
         
         // 조회된 User 엔티티의 정보로 Spring Security의 UserDetails 객체를 생성하여 반환합니다.
         return User.builder()
-                .username(user.getEmail()) 
+                .username(user.getEmail())
                 .password(user.getPassword())
-                .roles(user.getRole().replace("ROLE_", "")) 
+                .authorities(authorities)
                 .build();
     }
 }
