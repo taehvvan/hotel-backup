@@ -2,132 +2,157 @@
   <div class="page-container">
 
     <SearchBar />
-  
+
     <div class="search-result-container">
+      <!-- 필터 컬럼 -->
       <div class="filters-column">
         <div class="filter-header">
           <h4>필터</h4>
-          <button class="btn-reset">초기화</button>
+          <button class="btn-reset" @click="resetFilters">초기화</button>
         </div>
-  
+
+        <!-- 숙소 유형 -->
         <div class="filter-group">
           <h5>숙소 유형</h5>
           <div class="type-button-group">
-            <button class="type-filter-btn">호텔</button>
-            <button class="type-filter-btn">모텔</button>
-            <button class="type-filter-btn">한옥</button>
-            <button class="type-filter-btn">펜션/풀빌라</button>
-            <button class="type-filter-btn">게스트하우스/비앤비</button>
-            <button class="type-filter-btn">리조트</button>
+            <button
+              v-for="type in types"
+              :key="type"
+              @click="toggleType(type)"
+              :class="{ active: selectedTypes.includes(type) }"
+              class="type-filter-btn"
+            >
+              {{ type }}
+            </button>
           </div>
-          <button class="btn-more-types">더 보기</button>
         </div>
-  
+
+        <!-- 가격 범위 -->
         <div class="filter-group">
           <h5>가격 (1박 기준)</h5>
           <div class="price-range-slider">
-              <div class="slider-track"></div>
-              <input type="range" class="price-slider-min" min="0" max="1000000" step="10000" v-model.number="priceRange.min">
-              <input type="range" class="price-slider-max" min="0" max="1000000" step="10000" v-model.number="priceRange.max">
+            <div class="slider-track"></div>
+            <input
+              type="range"
+              class="price-slider-min"
+              min="0"
+              max="1000000"
+              step="10000"
+              v-model.number="priceRange.min"
+            >
+            <input
+              type="range"
+              class="price-slider-max"
+              min="0"
+              max="1000000"
+              step="10000"
+              v-model.number="priceRange.max"
+            >
           </div>
           <div class="price-display">
             <span>₩{{ priceRange.min.toLocaleString() }}</span> -
             <span>₩{{ priceRange.max.toLocaleString() }}</span>
           </div>
         </div>
-  
+
+        <!-- 평점 -->
         <div class="filter-group">
           <h5>평점</h5>
           <div class="rating-filter-card">
             <div class="rating-filter">
-              <button v-for="star in 5" :key="star" @click="rating = star" :class="{ active: rating >= star }">★</button>
+              <button
+                v-for="star in 5"
+                :key="star"
+                @click="rating = star"
+                :class="{ active: rating >= star }"
+              >★</button>
             </div>
             <span>{{ rating.toFixed(1) }}점 이상</span>
           </div>
         </div>
-  
+
+        <!-- 편의시설 -->
         <div class="filter-group">
           <h5>편의시설</h5>
           <div class="checkbox-group">
-            <label><input type="checkbox"> 🅿️ 주차 가능</label>
-            <label><input type="checkbox"> 🏊 수영장</label>
-            <label><input type="checkbox"> 🥐 조식 포함</label>
-            <label><input type="checkbox"> 🐾 반려동물</label>
+            <label v-for="item in amenities" :key="item.id">
+              <input type="checkbox" v-model="item.selected">
+              {{ item.name }}
+            </label>
           </div>
         </div>
       </div>
-  
+
+      <!-- 검색 결과 -->
       <div class="results-main-panel">
         <div class="search-summary">
           <h2><strong>'{{ destination }}'</strong> 검색 결과</h2>
           <div class="sort-options">
-            <select>
-              <option>추천순</option>
-              <option>가격 낮은순</option>
-              <option>가격 높은순</option>
-              <option>평점 높은순</option>
+            <select v-model="sortOption">
+              <option value="priceAsc">낮은 요금순</option>
+              <option value="ratingDesc">사용자 평점순</option>
             </select>
           </div>
         </div>
-  
+
         <div class="results-list">
-          <!-- 검색 결과가 있을 때 -->
-          <div v-if="searchResults.length > 0">
+          <div v-if="sortedResults.length > 0">
             <router-link
-              v-for="item in searchResults"
+              v-for="item in sortedResults"
               :key="item.hid"
               :to="{ name: 'HotelDetail', params: { id: item.hid } }"
               class="result-card"
             >
               <div class="result-card-inner">
                 <div class="image-wrapper">
-                  <!-- <img :src="item.image" :alt="item.name"> -->
-                  <img :src="a" :alt="item.hname">
+                  <img :src="item.image" :alt="item.hname">
                 </div>
                 <div class="info-wrapper">
                   <div class="info-header">
                     <div class="info-badges">
-                      <!-- <span class="item-type">{{ item.type }}</span> -->
-                      <span class="item-type">호텔</span>
+                      <span class="item-type">{{ item.type }}</span>
                     </div>
                     <h3>{{ item.hname }}</h3>
                   </div>
                   <div class="rating-section">
                     <div class="rating-card">
-                      <!-- <span class="score-badge">{{ item.rating.toFixed(1) }}</span>
-                      <span class="rating-text">{{ getRatingText(item.rating) }}</span> -->
+                      <span class="score-badge">{{ item.avgScore.toFixed(1) }}</span>
+                      <span class="rating-text">{{ getRatingText(item.avgScore) }}</span>
                     </div>
-                    <!-- <span class="review-count">({{ item.reviews.toLocaleString() }}개 후기)</span> -->
+                    <span class="review-count">({{ item.reviewCount.toLocaleString() }}개 후기)</span>
                   </div>
                   <div class="details-group">
                     <p class="grade">
-                      <!-- <span class="hotel-grade-stars">{{ '★'.repeat(item.stars) }}</span> {{ item.grade }} -->
+                      <span class="hotel-grade-stars">{{ '★'.repeat(item.star) }}</span> {{ item.type }}
                     </p>
                     <p class="location">
-                      <!-- <span class="location-icon">📍</span>{{ item.location }} -->
+                      <span class="location-icon">📍</span>{{ item.address }}
                     </p>
                     <p class="amenities">
-                      <!-- <strong>주요 편의시설:</strong> {{ item.amenities.join(', ') }} -->
+                      <strong>주요 편의시설:</strong>
+                      {{
+                        item.services?.length
+                          ? item.services.map(s => s.serviceName).join(', ')
+                          : '정보 없음'
+                      }}
                     </p>
                   </div>
                 </div>
                 <div class="price-wrapper">
                   <button class="like-button" @click.prevent>♡</button>
                   <div class="final-price-box">
-                    <span class="price-label">1박 최저가</span>
-                    <!-- <strong>{{ item.price.toLocaleString() }}원</strong> -->
+                    <span class="price-label">1박 최저가</span><br>
+                    <strong>{{ item.minPrice.toLocaleString() }}원</strong>
                   </div>
                 </div>
               </div>
             </router-link>
           </div>
-
-          <!-- 검색 결과가 없을 때 -->
           <div v-else>
             <p>죄송합니다, 검색 조건에 맞는 결과를 찾을 수 없습니다. 검색 조건을 변경 후 다시 조회해 주시기 바랍니다.</p>
           </div>
         </div>
-  
+
         <nav class="pagination">
           <a href="#">&lt;</a>
           <a href="#" class="active">1</a>
@@ -144,13 +169,9 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import SearchBar from './SearchBar.vue';
-
-// --- 검색창 로직 (전체) ---
-const calendarBtn = ref(null);
-const guestBtn = ref(null);
 
 const route = useRoute();
 
@@ -159,28 +180,73 @@ const checkIn = ref(null);
 const checkOut = ref(null);
 const rooms = ref(1);
 const persons = ref(2);
-
-const searchResults = ref([]);
-const priceRange = ref({ min: 50000, max: 750000 });
+const sortOption = ref('priceAsc');
 const rating = ref(4.0);
 
-// URL 쿼리 파라미터를 변수에 로드하는 함수
+const searchResults = ref([]);
+
+// 필터 상태
+const types = ['호텔', '모텔', '한옥', '펜션/풀빌라', '게스트하우스/비앤비', '리조트'];
+const selectedTypes = ref([]);
+
+const amenities = ref([
+  { id: 1, name: '무료 Wi-Fi', selected: false },
+  { id: 2, name: '에어컨', selected: false },
+  { id: 3, name: '주차 가능', selected: false },
+  { id: 4, name: '조식 제공', selected: false },
+  { id: 5, name: '수영장', selected: false },
+  { id: 6, name: '헬스장', selected: false },
+  { id: 7, name: '스파', selected: false },
+  { id: 8, name: '바베큐 시설', selected: false },
+  { id: 9, name: '반려동물', selected: false },
+]);
+
+const priceRange = ref({ min: 0, max: 150000 });
+
+watch(() => priceRange.value.min, (newVal) => {
+  if (newVal > priceRange.value.max) {
+    priceRange.value.min = priceRange.value.max;
+  }
+});
+
+watch(() => priceRange.value.max, (newVal) => {
+  if (newVal < priceRange.value.min) {
+    priceRange.value.max = priceRange.value.min;
+  }
+});
+
+// 선택된 편의시설
+const selectedAmenities = computed(() => amenities.value.filter(a => a.selected).map(a => a.name));
+
+// 선택된 유형 토글
+const toggleType = (type) => {
+  if (selectedTypes.value.includes(type)) {
+    selectedTypes.value = selectedTypes.value.filter(t => t !== type);
+  } else {
+    selectedTypes.value.push(type);
+  }
+};
+
+// 필터 초기화
+const resetFilters = () => {
+  selectedTypes.value = [];
+  amenities.value.forEach(a => a.selected = false);
+  priceRange.value = { min: 0, max: 150000 };
+  rating.value = 4.0;
+};
+
+// URL 쿼리 로드
 const loadSearchQueryFromUrl = () => {
   const query = route.query;
-
   destination.value = query.region || '';
-  
-  // URL에서 날짜 문자열을 Date 객체로 변환
   checkIn.value = query.startDate ? new Date(query.startDate) : null;
   checkOut.value = query.endDate ? new Date(query.endDate) : null;
-  
   rooms.value = Number(query.rooms) || 1;
   persons.value = Number(query.persons) || 2;
 };
 
-// 검색 요청 함수
+// 검색 API 호출
 const sendSearchRequest = async () => {
-  // 날짜 객체의 유효성을 확인
   const validStartDate = checkIn.value instanceof Date && !isNaN(checkIn.value);
   const validEndDate = checkOut.value instanceof Date && !isNaN(checkOut.value);
 
@@ -191,8 +257,6 @@ const sendSearchRequest = async () => {
     numberOfRooms: rooms.value,
     numberOfPeople: persons.value,
   };
-
-  console.log('백엔드로 보낼 검색 조건:', requestBody);
 
   try {
     const response = await fetch('http://localhost:8888/api/search', {
@@ -207,38 +271,62 @@ const sendSearchRequest = async () => {
     }
 
     if (response.ok) {
-      const data = await response.json();
-      searchResults.value = data;
-      console.log('검색 결과:', data);
+      searchResults.value = await response.json();
     } else {
-      console.error('검색 실패:', response.statusText);
-      alert('검색 중 오류가 발생했습니다.');
+      console.error('검색 실패:', response.status);
+      searchResults.value = [];
     }
   } catch (error) {
     console.error('API 호출 중 오류:', error);
-    alert('네트워크 오류가 발생했습니다.');
+    searchResults.value = [];
   }
 };
 
-// URL 쿼리가 변경될 때마다 이 로직이 실행됩니다.
-// 컴포넌트 마운트 시에도 즉시 실행됩니다.
-watch(
-  () => route.query,
-  () => {
-    loadSearchQueryFromUrl();
-    sendSearchRequest();
-  },
-  { immediate: true, deep: true }
-);
+// URL 쿼리 변경 시 재검색
+watch(() => route.query, () => {
+  loadSearchQueryFromUrl();
+  sendSearchRequest();
+}, { immediate: true, deep: true });
 
-// --- 검색 결과 페이지 로직 ---
-const getRatingText = (rating) => {
-  if (rating >= 4.5) return '최고에요';
-  if (rating >= 4.0) return '아주 좋아요';
-  if (rating >= 3.0) return '괜찮아요';
+// 편의시설 + 유형 + 가격 + 평점 필터링
+const filteredResults = computed(() => {
+  return searchResults.value.filter(item => {
+    // 유형 필터
+    if (selectedTypes.value.length && !selectedTypes.value.includes(item.type)) return false;
+
+    // 가격 필터
+    if (item.minPrice < priceRange.value.min || item.minPrice > priceRange.value.max) return false;
+
+    // 평점 필터
+    if (item.avgScore < rating.value) return false;
+
+    // 편의시설 필터
+    const itemServices = item.services?.map(s => s.serviceName) || [];
+    if (selectedAmenities.value.length && !selectedAmenities.value.every(a => itemServices.includes(a))) {
+      return false;
+    }
+
+    return true;
+  });
+});
+
+// 정렬 적용
+const sortedResults = computed(() => {
+  const list = [...filteredResults.value];
+  switch (sortOption.value) {
+    case 'priceAsc': return list.sort((a, b) => a.minPrice - b.minPrice);
+    case 'ratingDesc': return list.sort((a, b) => b.avgScore - a.avgScore);
+    default: return list;
+  }
+});
+
+// 평점 텍스트
+const getRatingText = (score) => {
+  if (score >= 4.5) return '최고에요';
+  if (score >= 4.0) return '아주 좋아요';
+  if (score >= 3.0) return '괜찮아요';
   return '보통이에요';
 };
-
 </script>
   
 <style scoped>
@@ -351,4 +439,16 @@ h3 { margin: 5px 0; font-size: 1.4rem; font-weight: 700; color: #222; }
 .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 50px; }
 .pagination a { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: #333; font-weight: 500; }
 .pagination a.active { background-color: #007bff; color: #fff; border-color: #007bff; font-weight: 700; }
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px; /* 줄 간격 10px, 항목 간격 20px */
+}
+
+.checkbox-group label {
+  width: calc(50% - 10px); /* 2줄 정렬: 전체 너비의 절반 */
+  display: flex;
+  align-items: center;
+}
 </style>

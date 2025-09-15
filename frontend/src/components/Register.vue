@@ -8,7 +8,7 @@
 
       <form @submit.prevent="handleRegister" class="register-form">
         <div class="input-group">
-          <input type="text" id="name" v-model="name" placeholder="이름" required>
+          <input type="text" id="username" v-model="username" placeholder="이름" required>
         </div>
         <div class="input-group">
           <input type="email" id="email" v-model="email" placeholder="이메일 주소" required>
@@ -17,7 +17,7 @@
           <input type="password" id="password" v-model="password" placeholder="비밀번호" required>
         </div>
         <div class="input-group">
-          <input type="password" id="passwordConfirm" v-model="passwordConfirm" placeholder="비밀번호 확인" required>
+          <input type="password" id="password-confirm" v-model="passwordConfirm" placeholder="비밀번호 확인" required>
         </div>
         <button type="submit" class="btn-register">회원가입</button>
       </form>
@@ -52,52 +52,26 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
 
 const router = useRouter();
-
-// 상태 변수 선언
-const name = ref('');
+const username = ref('');
 const email = ref('');
 const password = ref('');
 const passwordConfirm = ref('');
-const phone = ref('');
-const birth = ref('');
-const social = ref('');
 
-// 회원가입 처리 함수
-const handleRegister = async () => {
+const handleRegister = () => {
   if (password.value !== passwordConfirm.value) {
     alert('비밀번호가 일치하지 않습니다.');
     return;
   }
+  
+  console.log('Registering user:', { username: username.value, email: email.value });
 
-  try {
-    // 요청할 데이터 준비
-    const data = {
-      name: name.value,
-      email: email.value,
-      password: password.value,
-      passwordConfirm: passwordConfirm.value,
-      phone: phone.value,
-      birth: birth.value,
-      social: social.value,
-      role: 'ROLE_USER' // 기본 역할: ROLE_USER
-    };
-
-    // 백엔드에 요청 보내기
-    const response = await axios.post('http://localhost:8888/api/register', data);
-
-    // 성공시 처리
-    if (response.data.success) {
-      alert('회원가입이 완료되었습니다!');
-      router.push({ name: 'RegisterSuccess', query: { name: name.value } });
-    } else {
-      alert('회원가입에 실패했습니다.');
-    }
-  } catch (error) {
-    const message = error.response?.data?.message || error.message;
-    alert('회원가입 요청 실패: ' + message);
+  const isSuccess = true;
+  if (isSuccess) {
+    router.push({ name: 'RegisterSuccess', query: { name: username.value } });
+  } else {
+    alert('회원가입에 실패했습니다.');
   }
 };
 </script>
