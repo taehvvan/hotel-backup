@@ -68,6 +68,9 @@ public class SecurityContext {
                 .requestMatchers(
                         "/api/auth/login",
                         "/api/register",
+                        "/api/kakao/login",      // 카카오 로그인 시작 URL
+                        "/api/kakao/callback",   // 카카오 콜백 URL
+                        //"/api/auth/social/kakao/callback",
                         "/", "/search",
                         "/hotel/**", "/landmark/**", "/heritage/**",
                         "/terms", "/privacy",

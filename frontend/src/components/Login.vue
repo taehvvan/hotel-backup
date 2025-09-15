@@ -71,6 +71,7 @@ const handleEmailLogin = async () => {
 
 const handleKakaoLogin = () => {
   alert('카카오 로그인을 시도합니다.');
+  window.location.href = 'http://localhost:8888/api/kakao/login';
 };
 const handleGoogleLogin = () => {
   alert('구글 로그인을 시도합니다.');

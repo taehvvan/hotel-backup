@@ -46,6 +46,22 @@ public class JwtTokenProvider {
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
     }
+    
+    public String createToken(String email, String role) {
+        Claims claims = Jwts.claims().setSubject(email);
+        claims.put("role", role);
+
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+
+        return Jwts.builder()
+            .setClaims(claims)
+            .setIssuedAt(now)
+            .setExpiration(expiryDate)
+            .signWith(key, SignatureAlgorithm.HS512)
+            .compact();
+    }
+
 
     // JWT로 인증 정보 추출
     public Authentication getAuthentication(String token) {
