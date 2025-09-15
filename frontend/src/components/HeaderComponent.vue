@@ -149,7 +149,7 @@
 }
 
 /* 화면 크기 50% 이하일 때 적용되는 스타일 */
-@media (max-width: 1200px) {
+@media (max-width: 1600px) {
     .main-header .content-wrapper {
         justify-content: space-between; /* 메뉴 좌우 정렬 */
         padding: 0 3%;
