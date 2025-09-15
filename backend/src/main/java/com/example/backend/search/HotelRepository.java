@@ -16,6 +16,7 @@ public interface HotelRepository extends JpaRepository<Hotel, Long> {
           FROM hotel h
           JOIN room r ON h.h_id = r.h_id
           WHERE h.region = :region
+            AND h.active = true
             AND r.count >= :numberOfRooms
             AND (r.people * :numberOfRooms) >= :numberOfPeople
             AND NOT EXISTS (

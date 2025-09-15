@@ -3,6 +3,7 @@ package com.example.backend.search;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,29 +46,69 @@ public class HotelSearchService {
         HotelDTO dto = new HotelDTO();
         dto.setHId(hotel.getHId());
         dto.setHName(hotel.getHName());
+        dto.setType(hotel.getType());
         dto.setRegion(hotel.getRegion());
+        dto.setAddress(hotel.getAddress());
+        dto.setStar(hotel.getStar());
+        dto.setInfo(hotel.getInfo());
 
-        if (hotel.getRooms() != null) {
+        // services 변환
+        List<ServiceDTO> serviceDTOs = hotel.getServices().stream().map(service -> {
+            ServiceDTO sDto = new ServiceDTO();
+            sDto.setServiceName(service.getServiceName());
+            return sDto;
+        }).collect(Collectors.toList());
+        dto.setServices(serviceDTOs);
+
+        // rooms 처리
+        if (hotel.getRooms() != null && !hotel.getRooms().isEmpty()) {
             List<RoomDTO> roomDTOs = hotel.getRooms().stream().map(room -> {
                 RoomDTO rDto = new RoomDTO();
                 rDto.setRId(room.getRId());
                 rDto.setType(room.getType());
                 rDto.setCount(room.getCount());
                 rDto.setPeople(room.getPeople());
+                rDto.setPrice(room.getPrice());
+                rDto.setInfo(room.getInfo());
+                rDto.setCheckinTime(room.getCheckinTime());
+                rDto.setCheckoutTime(room.getCheckoutTime());
 
                 if (room.getRoomAvailabilities() != null) {
-                    List<RoomAvailabilityDTO> availabilities = room.getRoomAvailabilities().stream().map(ra -> {
-                        RoomAvailabilityDTO raDto = new RoomAvailabilityDTO();
-                        raDto.setDate(ra.getDate());
-                        raDto.setAvailableCount(ra.getAvailableCount());
-                        return raDto;
-                    }).collect(Collectors.toList());
-                    rDto.setAvailabilities(availabilities);
+                    rDto.setAvailabilities(
+                            room.getRoomAvailabilities().stream().map(ra -> {
+                                RoomAvailabilityDTO raDto = new RoomAvailabilityDTO();
+                                raDto.setDate(ra.getDate());
+                                raDto.setAvailableCount(ra.getAvailableCount());
+                                return raDto;
+                            }).collect(Collectors.toList()));
+                } else {
+                    rDto.setAvailabilities(new ArrayList<>());
                 }
 
                 return rDto;
             }).collect(Collectors.toList());
             dto.setRooms(roomDTOs);
+
+            // 최저가 계산
+            Integer minPrice = roomDTOs.stream()
+                    .map(RoomDTO::getPrice)
+                    .min(Integer::compareTo)
+                    .orElse(0); // 방이 없으면 0
+            dto.setMinPrice(minPrice);
+        } else {
+            dto.setRooms(new ArrayList<>());
+            dto.setMinPrice(0);
+        }
+
+        // 리뷰 처리
+        if (hotel.getReviews() != null && !hotel.getReviews().isEmpty()) {
+            int sum = hotel.getReviews().stream().mapToInt(Review::getScore).sum();
+            int count = hotel.getReviews().size();
+            dto.setAvgScore(sum / (double) count);
+            dto.setReviewCount(count);
+        } else {
+            dto.setAvgScore(0.0);
+            dto.setReviewCount(0);
         }
 
         return dto;

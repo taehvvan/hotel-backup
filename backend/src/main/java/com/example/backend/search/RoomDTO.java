@@ -1,5 +1,6 @@
 package com.example.backend.search;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import lombok.Getter;
@@ -12,6 +13,10 @@ public class RoomDTO {
     private String type;
     private int count;
     private int people;
-    // RoomAvailability가 필요하면 포함 가능
+    private int price; // 추가
+    private String info; // 선택 사항
+    private LocalDate checkinTime; // 선택 사항
+    private LocalDate checkoutTime; // 선택 사항
+    private Long hotelId; // 선택 사항
     private List<RoomAvailabilityDTO> availabilities;
 }
