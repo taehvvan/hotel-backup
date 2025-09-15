@@ -80,7 +80,15 @@
 
       <!-- 랜드마크 카드들 -->
       <div class="landmarks-grid">
-        <div v-for="landmark in filteredLandmarks" :key="landmark.id" class="landmark-card">
+        <div
+          v-for="landmark in filteredLandmarks"
+          :key="landmark.id"
+          class="landmark-card"
+          role="button"
+          tabindex="0"
+          @click="goDetail(landmark)"
+          @keyup.enter="goDetail(landmark)"
+        >
           <div class="landmark-image-container">
             <img :src="landmark.image" :alt="landmark.name" />
           </div>
@@ -104,9 +112,12 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import gyeongjuImage from '@/assets/images/card-gyeongju.jpg';
 import jejuImage from '@/assets/images/card-jeju.jpg';
 import jeonjuImage from '@/assets/images/card-jeonju.jpg';
+
+const router = useRouter();
 
 // 더미 데이터 (API 연동 시 교체)
 const allLandmarks = ref([
@@ -132,6 +143,14 @@ const sortOrder = ref('popularity');      // 'popularity' | 'name'
 // ▼ 드롭다운 상태
 const isRegionDropdownOpen = ref(false);
 const isHeritageDropdownOpen = ref(false);
+
+// ▼ 상세 이동
+const goDetail = (l) => {
+  // 라우트 이름이 프로젝트와 다르면 아래를 바꿔줘.
+  router.push({ name: 'LandmarkDetail', params: { id: String(l.id) } });
+  // 혹은 path 방식:
+  // router.push(`/landmarks/${l.id}`);
+};
 
 // ▼ 필터링 + 정렬
 const filteredLandmarks = computed(() => {
@@ -251,6 +270,7 @@ const sortLandmarks = () => {
   transition: transform .3s ease, box-shadow .3s ease; cursor: pointer;
 }
 .landmark-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.1); }
+.landmark-card:focus { outline: 2px solid #0A2A66; outline-offset: 2px; }
 .landmark-image-container { width: 100%; height: 200px; overflow: hidden; }
 .landmark-image-container img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
 .landmark-card:hover img { transform: scale(1.05); }
@@ -268,4 +288,3 @@ const sortLandmarks = () => {
   grid-column: 1 / -1; text-align: center; color: #777; padding: 40px 0;
 }
 </style>
-  
