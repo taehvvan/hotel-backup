@@ -1,29 +1,51 @@
 <template>
-    <header class="main-header">
-      <div class="content-wrapper">
-        <router-link to="/" class="logo">
-          <h1>쉼, 한국</h1>
-        </router-link>
-        <nav class="main-nav">
-          <router-link to="/">홈</router-link>
-          <router-link to="/accommodations">지역</router-link>
-          <router-link to="/landmarks">랜드마크</router-link>
-          <router-link to="/heritage">문화재</router-link>
-        </nav>
-        <div class="user-nav">
-            <router-link to="/booking-check" class="nav-link">예약확인</router-link>
-          <router-link to="/wishlist" class="nav-link favorites">❤️ 찜하기</router-link>
-          <div class="nav-divider"></div>
+  <header class="main-header">
+    <div class="content-wrapper">
+      <router-link to="/" class="logo">
+        <h1>쉼, 한국</h1>
+      </router-link>
+      <nav class="main-nav">
+        <router-link to="/">홈</router-link>
+        <router-link to="/accommodations">지역</router-link>
+        <router-link to="/landmarks">랜드마크</router-link>
+        <router-link to="/heritage">문화재</router-link>
+      </nav>
+      <div class="user-nav">
+        <router-link to="/booking-check" class="nav-link">예약확인</router-link>
+        <router-link to="/wishlist" class="nav-link favorites">❤️ 찜하기</router-link>
+        <div class="nav-divider"></div>
+
+        <template v-if="authStore.isLoggedIn">
+          <span class="nav-link">안녕하세요, {{ authStore.userName }}님</span>
+          <button class="nav-link" @click="handleLogout">로그아웃</button>
+        </template>
+        <template v-else>
           <router-link to="/login" class="nav-link">로그인</router-link>
           <router-link to="/register" class="signup-btn">회원가입</router-link>
-        </div>
+        </template>
       </div>
-    </header>
-  </template>
-  
-  <script setup>
-  // 이 컴포넌트는 스크립트가 필요 없습니다.
-  </script>
+    </div>
+  </header>
+</template>
+
+<script setup>
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+const handleLogout = () => {
+  authStore.logout();
+  router.push('/');
+};
+
+onMounted(() => {
+  authStore.checkLoginStatus();
+});
+</script>
+
   
   <style scoped>
   /* [추가] '나눔명조' 폰트 import */

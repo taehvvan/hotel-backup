@@ -11,7 +11,7 @@
       <div class="input-group">
         <input type="password" id="password" v-model="password" placeholder="비밀번호" required>
       </div>
-      <button type="button" class="btn-login-email" @click="handleEmailLogin">로그인</button>
+      <button type="button" class="btn-login-email" @click.prevent="handleEmailLogin">로그인</button>
 
       <div class="extra-links">
         <a href="#">비밀번호 찾기</a>
@@ -40,15 +40,38 @@
 
 <script setup>
 import { ref } from 'vue';
+import axios from 'axios'; // axios 라이브러리 추가
+import { useRouter } from 'vue-router';
 
 const email = ref('');
 const password = ref('');
+const router = useRouter()
 
-const handleEmailLogin = () => {
-  alert(`${email.value}로 로그인을 시도합니다.`);
+const handleEmailLogin = async () => {
+  try {
+    const response = await axios.post('http://localhost:8888/api/auth/login', {
+      email: email.value,
+      password: password.value
+    });
+
+    const token = response.data.accessToken || response.data.token;
+    localStorage.setItem('jwtToken', token);
+    console.log('로그인 성공, JWT:', token);
+    router.push('/'); 
+  } catch (error) {
+    if (error.response) {
+      console.error('로그인 실패:', error.response.data);
+      alert(`로그인 실패: ${JSON.stringify(error.response.data)}`);
+    } else {
+      console.error('요청 실패:', error);
+      alert('로그인 요청 실패. 네트워크 상태를 확인해주세요.');
+    }
+  }
 };
+
 const handleKakaoLogin = () => {
   alert('카카오 로그인을 시도합니다.');
+  window.location.href = 'http://localhost:8888/api/kakao/login';
 };
 const handleGoogleLogin = () => {
   alert('구글 로그인을 시도합니다.');
