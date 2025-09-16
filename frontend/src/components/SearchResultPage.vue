@@ -59,15 +59,27 @@
         <div class="filter-group">
           <h5>평점</h5>
           <div class="rating-filter-card">
-            <div class="rating-filter">
+            <div class="rating-filter-wrapper">
+              <!-- 0점 버튼: 모든 평점 포함 -->
               <button
-                v-for="star in 5"
-                :key="star"
-                @click="rating = star"
-                :class="{ active: rating >= star }"
-              >★</button>
+          class="zero-btn"
+          @click="rating = 0"
+          :class="{ active: rating === 0 }"
+        >
+          전체
+        </button>
+
+              <!-- 1~5점 버튼 -->
+              <div class="rating-filter">
+                <button
+                  v-for="star in 5"
+                  :key="star"
+                  @click="rating = star"
+                  :class="{ active: rating >= star }"
+                >★</button>
+              </div>
             </div>
-            <span>{{ rating.toFixed(1) }}점 이상</span>
+            <span>{{ rating === 0 ? '모든 평점' : rating.toFixed(1) + '점 이상' }}</span>
           </div>
         </div>
 
@@ -75,7 +87,7 @@
         <div class="filter-group">
           <h5>편의시설</h5>
           <div class="checkbox-group">
-            <label v-for="item in amenities" :key="item.id">
+            <label v-for="item in amenities" :key="item.id" class="checkbox-label">
               <input type="checkbox" v-model="item.selected">
               {{ item.name }}
             </label>
@@ -115,11 +127,13 @@
                     <h3>{{ item.hname }}</h3>
                   </div>
                   <div class="rating-section">
-                    <div class="rating-card">
+                    <div class="rating-card" v-if="item.reviewCount > 0">
                       <span class="score-badge">{{ item.avgScore.toFixed(1) }}</span>
                       <span class="rating-text">{{ getRatingText(item.avgScore) }}</span>
                     </div>
-                    <span class="review-count">({{ item.reviewCount.toLocaleString() }}개 후기)</span>
+                    <div v-else>
+                      <span class="rating-text">아직 리뷰가 없습니다</span>
+                    </div>
                   </div>
                   <div class="details-group">
                     <p class="grade">
@@ -132,7 +146,14 @@
                       <strong>주요 편의시설:</strong>
                       {{
                         item.services?.length
-                          ? item.services.map(s => s.serviceName).join(', ')
+                          ? (() => {
+                              const names = item.services.map(s => s.serviceName);
+                              if (names.length > 6) {
+                                return names.slice(0, 6).join(', ') + ' ...';
+                              } else {
+                                return names.join(', ');
+                              }
+                            })()
                           : '정보 없음'
                       }}
                     </p>
@@ -142,7 +163,7 @@
                   <button class="like-button" @click.prevent>♡</button>
                   <div class="final-price-box">
                     <span class="price-label">1박 최저가</span><br>
-                    <strong>{{ item.minPrice.toLocaleString() }}원</strong>
+                    <strong>{{ item.minPrice.toLocaleString() ?? 0 }}원</strong>
                   </div>
                 </div>
               </div>
@@ -181,7 +202,7 @@ const checkOut = ref(null);
 const rooms = ref(1);
 const persons = ref(2);
 const sortOption = ref('priceAsc');
-const rating = ref(4.0);
+const rating = ref(0.0);
 
 const searchResults = ref([]);
 
@@ -232,7 +253,7 @@ const resetFilters = () => {
   selectedTypes.value = [];
   amenities.value.forEach(a => a.selected = false);
   priceRange.value = { min: 0, max: 150000 };
-  rating.value = 4.0;
+  rating.value = 0.0;
 };
 
 // URL 쿼리 로드
@@ -259,7 +280,7 @@ const sendSearchRequest = async () => {
   };
 
   try {
-    const response = await fetch('http://localhost:8888/api/search', {
+    const response = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -298,7 +319,8 @@ const filteredResults = computed(() => {
     if (item.minPrice < priceRange.value.min || item.minPrice > priceRange.value.max) return false;
 
     // 평점 필터
-    if (item.avgScore < rating.value) return false;
+    // 평점이 없으면 필터 무시 (항상 통과)
+    if (item.avgScore != null && item.avgScore < rating.value) return false;
 
     // 편의시설 필터
     const itemServices = item.services?.map(s => s.serviceName) || [];
@@ -342,17 +364,7 @@ body {
 .content-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
   
 .search-section { padding: 40px 0; background-color: #fff; border-bottom: 1px solid #e0e0e0; }
-.main-search-bar { 
-  display: flex; 
-  align-items: center; 
-  background-color: #f5f6f7; 
-  border: 1px solid #E5E5E5; 
-  border-radius: 12px; 
-  height: 72px; 
-  box-shadow: 0 8px 16px rgba(0,0,0,0.05); 
-  max-width: 900px;
-  margin: 0 auto;
-}
+.main-search-bar { display: flex; align-items: center; background-color: #f5f6f7; border: 1px solid #E5E5E5; border-radius: 12px; height: 72px; box-shadow: 0 8px 16px rgba(0,0,0,0.05); max-width: 900px; margin: 0 auto;}
 .search-input-group { display: flex; align-items: center; flex: 1 1 0; height: 100%; padding: 0 20px; cursor: pointer; gap: 10px; }
 .search-input-group:not(:last-of-type) { border-right: 1px solid #E5E5E5; }
 .search-input-group.destination { flex-grow: 1.5; }
@@ -388,11 +400,14 @@ body {
 .type-filter-btn { padding: 8px 16px; border: 1px solid #ddd; border-radius: 20px; background-color: #fff; color: #555; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 .type-filter-btn.active { background-color: #007bff; color: #fff; border-color: #007bff; }
 .btn-more-types { background: none; border: none; color: #007bff; font-weight: 500; margin-top: 5px; cursor: pointer; }
-.rating-filter-card { display: flex; justify-content: space-between; align-items: center; background-color: #F8F9FA; border-radius: 8px; padding: 10px 15px; }
-.rating-filter { display: flex; align-items: center; gap: 2px; }
-.rating-filter button { background: none; border: none; font-size: 1.5rem; color: #E0E0E0; cursor: pointer; padding: 0; transition: color 0.2s ease; }
-.rating-filter button.active { color: #FFD700; }
-.rating-filter-card span { font-weight: 500; color: #555; }
+.rating-filter-card {  display: flex;  flex-direction: column; /* 세로 정렬 */  gap: 8px;  background-color: #F8F9FA;  border-radius: 8px;  padding: 10px 15px;}
+.rating-filter-wrapper {  display: flex;  align-items: center;  gap: 10px;}
+.rating-filter {  display: flex;  gap: 4px;}
+.rating-filter button {  background: none;  border: none;  font-size: 1.5rem;  color: #E0E0E0;  cursor: pointer;  padding: 0 4px;  transition: color 0.2s ease;}
+.rating-filter button.active { color: #FFD700;}
+.zero-btn { font-size: 0.85rem; color: #555;  padding: 2px 6px;  border: 1px solid #ddd;  border-radius: 12px;  background-color: #fff;  cursor: pointer;}
+.zero-btn.active {  font-weight: 700;  color: #007bff;  border-color: #007bff;}
+.rating-filter-card span { font-weight: 500;  color: #555;  flex: 1;  text-align: center; /* 중앙정렬 */}
 .price-range-slider { position: relative; height: 20px; margin-bottom: 15px; }
 .price-range-slider input[type=range] { position: absolute; width: 100%; -webkit-appearance: none; background: transparent; pointer-events: none; }
 .price-range-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: all; width: 22px; height: 22px; border-radius: 50%; background: #007bff; border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.2); cursor: pointer; }
@@ -440,15 +455,7 @@ h3 { margin: 5px 0; font-size: 1.4rem; font-weight: 700; color: #222; }
 .pagination a { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: #333; font-weight: 500; }
 .pagination a.active { background-color: #007bff; color: #fff; border-color: #007bff; font-weight: 700; }
 
-.checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 20px; /* 줄 간격 10px, 항목 간격 20px */
-}
-
-.checkbox-group label {
-  width: calc(50% - 10px); /* 2줄 정렬: 전체 너비의 절반 */
-  display: flex;
-  align-items: center;
-}
+.checkbox-group {  display: flex;  flex-wrap: wrap;  gap: 10px 20px; /* 줄 간격 10px, 항목 간격 20px */}
+.checkbox-group label {  width: calc(50% - 10px); /* 2줄 정렬: 전체 너비의 절반 */  display: flex;  align-items: center;}
+.checkbox-label input {  margin-right: 8px; /* 체크박스와 텍스트 사이 간격 */}
 </style>
