@@ -23,14 +23,35 @@ public interface HotelRepository extends JpaRepository<Hotel, Long> {
                 SELECT 1
                 FROM room_availability ra
                 WHERE ra.r_id = r.r_id
-                AND ra.date BETWEEN :startDate AND :endDate
-                AND ra.available_count < :numberOfRooms
+                  AND ra.date BETWEEN :startDate AND :endDate
+                  AND ra.available_count < :numberOfRooms
             )
       """, nativeQuery = true)
   List<Hotel> searchHotels(
       @Param("region") String region,
       @Param("numberOfPeople") int numberOfPeople,
       @Param("numberOfRooms") int numberOfRooms,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate);
+
+  @Query("""
+        SELECT MIN(r.price)
+        FROM Room r
+        WHERE r.hotel.hId = :hotelId
+          AND r.count >= :numberOfRooms
+          AND (r.people * :numberOfRooms) >= :numberOfPeople
+          AND NOT EXISTS (
+            SELECT 1
+            FROM RoomAvailability ra
+            WHERE ra.room = r
+              AND ra.date BETWEEN :startDate AND :endDate
+              AND ra.availableCount < :numberOfRooms
+          )
+      """)
+  Integer findMinPriceByHotelAndConditions(
+      @Param("hotelId") Long hotelId,
+      @Param("numberOfRooms") int numberOfRooms,
+      @Param("numberOfPeople") int numberOfPeople,
       @Param("startDate") LocalDate startDate,
       @Param("endDate") LocalDate endDate);
 }

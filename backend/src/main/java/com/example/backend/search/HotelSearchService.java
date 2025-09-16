@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -36,13 +37,15 @@ public class HotelSearchService {
                 request.getEndDate());
 
         // 엔티티 → DTO 변환
-        return hotels.stream().map(this::convertToDTO).collect(Collectors.toList());
+        return hotels.stream()
+                .map(hotel -> convertToDTO(hotel, request))
+                .collect(Collectors.toList());
     }
 
     /**
-     * Hotel 엔티티를 HotelDTO로 변환
+     * Hotel 엔티티를 HotelDTO로 변환 (null-safe)
      */
-    private HotelDTO convertToDTO(Hotel hotel) {
+    private HotelDTO convertToDTO(Hotel hotel, SearchRequest request) {
         HotelDTO dto = new HotelDTO();
         dto.setHId(hotel.getHId());
         dto.setHName(hotel.getHName());
@@ -52,58 +55,71 @@ public class HotelSearchService {
         dto.setStar(hotel.getStar());
         dto.setInfo(hotel.getInfo());
 
-        // services 변환
-        List<ServiceDTO> serviceDTOs = hotel.getServices().stream().map(service -> {
-            ServiceDTO sDto = new ServiceDTO();
-            sDto.setServiceName(service.getServiceName());
-            return sDto;
-        }).collect(Collectors.toList());
+        // services 변환 (null-safe)
+        List<ServiceDTO> serviceDTOs = Optional.ofNullable(hotel.getServices())
+                .orElseGet(ArrayList::new)
+                .stream()
+                .map(service -> {
+                    ServiceDTO sDto = new ServiceDTO();
+                    sDto.setServiceName(service.getServiceName());
+                    return sDto;
+                })
+                .collect(Collectors.toList());
         dto.setServices(serviceDTOs);
 
-        // rooms 처리
-        if (hotel.getRooms() != null && !hotel.getRooms().isEmpty()) {
-            List<RoomDTO> roomDTOs = hotel.getRooms().stream().map(room -> {
-                RoomDTO rDto = new RoomDTO();
-                rDto.setRId(room.getRId());
-                rDto.setType(room.getType());
-                rDto.setCount(room.getCount());
-                rDto.setPeople(room.getPeople());
-                rDto.setPrice(room.getPrice());
-                rDto.setInfo(room.getInfo());
-                rDto.setCheckinTime(room.getCheckinTime());
-                rDto.setCheckoutTime(room.getCheckoutTime());
+        // rooms 처리 (null-safe)
+        List<RoomDTO> roomDTOs = Optional.ofNullable(hotel.getRooms())
+                .orElseGet(ArrayList::new)
+                .stream()
+                .map(room -> {
+                    RoomDTO rDto = new RoomDTO();
+                    rDto.setRId(room.getRId());
+                    rDto.setType(room.getType());
+                    rDto.setCount(room.getCount());
+                    rDto.setPeople(room.getPeople());
+                    rDto.setPrice(room.getPrice());
+                    rDto.setInfo(room.getInfo());
+                    rDto.setCheckinTime(room.getCheckinTime());
+                    rDto.setCheckoutTime(room.getCheckoutTime());
 
-                if (room.getRoomAvailabilities() != null) {
-                    rDto.setAvailabilities(
-                            room.getRoomAvailabilities().stream().map(ra -> {
+                    // availabilities 변환 (null-safe)
+                    List<RoomAvailabilityDTO> raDTOs = Optional.ofNullable(room.getRoomAvailabilities())
+                            .orElseGet(ArrayList::new)
+                            .stream()
+                            .map(ra -> {
                                 RoomAvailabilityDTO raDto = new RoomAvailabilityDTO();
                                 raDto.setDate(ra.getDate());
                                 raDto.setAvailableCount(ra.getAvailableCount());
                                 return raDto;
-                            }).collect(Collectors.toList()));
-                } else {
-                    rDto.setAvailabilities(new ArrayList<>());
-                }
+                            })
+                            .collect(Collectors.toList());
+                    rDto.setAvailabilities(raDTOs);
 
-                return rDto;
-            }).collect(Collectors.toList());
-            dto.setRooms(roomDTOs);
+                    return rDto;
+                })
+                .collect(Collectors.toList());
+        dto.setRooms(roomDTOs);
 
-            // 최저가 계산
-            Integer minPrice = roomDTOs.stream()
-                    .map(RoomDTO::getPrice)
-                    .min(Integer::compareTo)
-                    .orElse(0); // 방이 없으면 0
-            dto.setMinPrice(minPrice);
-        } else {
-            dto.setRooms(new ArrayList<>());
-            dto.setMinPrice(0);
-        }
+        // 최저가 계산 (조건 null-safe)
+        Integer minPrice = roomDTOs.stream()
+                .filter(room -> room.getCount() >= request.getNumberOfRooms()
+                        && (room.getPeople() * request.getNumberOfRooms()) >= request.getNumberOfPeople()
+                        && (request.getStartDate() != null && request.getEndDate() != null
+                                ? room.getAvailabilities().stream()
+                                        .noneMatch(ra -> !ra.getDate().isBefore(request.getStartDate()) &&
+                                                !ra.getDate().isAfter(request.getEndDate()) &&
+                                                ra.getAvailableCount() < request.getNumberOfRooms())
+                                : true))
+                .map(RoomDTO::getPrice)
+                .min(Integer::compareTo)
+                .orElse(0);
+        dto.setMinPrice(minPrice);
 
-        // 리뷰 처리
-        if (hotel.getReviews() != null && !hotel.getReviews().isEmpty()) {
-            int sum = hotel.getReviews().stream().mapToInt(Review::getScore).sum();
-            int count = hotel.getReviews().size();
+        // 리뷰 처리 (null-safe)
+        List<Review> reviews = Optional.ofNullable(hotel.getReviews()).orElseGet(ArrayList::new);
+        if (!reviews.isEmpty()) {
+            int sum = reviews.stream().mapToInt(Review::getScore).sum();
+            int count = reviews.size();
             dto.setAvgScore(sum / (double) count);
             dto.setReviewCount(count);
         } else {
