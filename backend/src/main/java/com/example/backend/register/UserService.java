@@ -1,11 +1,11 @@
 package com.example.backend.register;
 
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.example.backend.register.UserDTO;
-import com.example.backend.register.UserEntity;
-import com.example.backend.register.UserRepository;
+
 
 @Service
 public class UserService {
@@ -18,6 +18,9 @@ public class UserService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
+
+    @Autowired
+    private KakaoService kakaoService;
 
     public boolean registerUser(UserDTO userDto) {
         try {
@@ -35,4 +38,22 @@ public class UserService {
             return false;
         }
     }
+
+    public UserEntity kakaoLoginOrRegister(String code) throws Exception {
+        String accessToken = kakaoService.getAccessToken(code);
+
+        UserEntity kakaoUser = kakaoService.getUserInfo(accessToken);
+
+        Optional<UserEntity> existingUser = userRepository.findByEmailAndSocial(kakaoUser.getEmail(), "kakao");
+
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        } else {
+            kakaoUser.setPassword(null);
+            kakaoUser.setSocial("kakao");
+            return userRepository.save(kakaoUser);
+        }
+    }
+
 }
+

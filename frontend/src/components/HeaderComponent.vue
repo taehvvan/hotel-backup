@@ -15,9 +15,9 @@
         <router-link to="/wishlist" class="nav-link favorites">❤️ 찜하기</router-link>
         <div class="nav-divider"></div>
 
-        <template v-if="isLoggedIn">
-          <span class="nav-link">안녕하세요, {{ userName }}님</span>
-          <button class="nav-link" @click="logout">로그아웃</button>
+        <template v-if="authStore.isLoggedIn">
+          <span class="nav-link">안녕하세요, {{ authStore.userName }}님</span>
+          <button class="nav-link" @click="handleLogout">로그아웃</button>
         </template>
         <template v-else>
           <router-link to="/login" class="nav-link">로그인</router-link>
@@ -29,34 +29,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
-const isLoggedIn = ref(false);
-const userName = ref('');
+const authStore = useAuthStore();
 
-const logout = () => {
-  localStorage.removeItem('jwtToken');
-  isLoggedIn.value = false;
+const handleLogout = () => {
+  authStore.logout();
   router.push('/');
 };
 
-onMounted(async () => {
-  const token = localStorage.getItem('jwtToken');
-  if (token) {
-    try {
-      const response = await axios.get('http://localhost:8888/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      isLoggedIn.value = true;
-      userName.value = response.data.name;
-    } catch (err) {
-      console.error(err);
-      isLoggedIn.value = false;
-    }
-  }
+onMounted(() => {
+  authStore.checkLoginStatus();
 });
 </script>
 
