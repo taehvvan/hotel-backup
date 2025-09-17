@@ -9,15 +9,17 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
-
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private GoogleService googleService;
+
+    
 
     @Autowired
     private KakaoService kakaoService;
@@ -54,6 +56,22 @@ public class UserService {
             return userRepository.save(kakaoUser);
         }
     }
+    /* 
+    public UserEntity googleLoginOrRegister(String code) throws Exception {
+        String idToken = googleService.getAccessToken(code);
+        User googleUser = googleService.getUserInfo(idToken);
 
+        Optional<User> existingUser = userRepository.findByEmailAndSocial(googleUser.getEmail(), "google");
+        
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        } else {
+            googleUser.setPassword(null);
+            googleUser.setPasswordConfirm(null);
+            googleUser.setSocial("google");
+            return userRepository.save(googleUser);
+        }
+    }
+*/
 }
 

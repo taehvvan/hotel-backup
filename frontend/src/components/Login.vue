@@ -75,6 +75,7 @@ const handleKakaoLogin = () => {
 };
 const handleGoogleLogin = () => {
   alert('구글 로그인을 시도합니다.');
+  window.location.href = 'http://localhost:8888/api/google/login';
 };
 </script>
 
