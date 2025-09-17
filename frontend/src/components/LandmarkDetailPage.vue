@@ -22,8 +22,8 @@
             <button class="nav prev" @click="prev" aria-label="이전 사진">‹</button>
             <img
               class="hero-img"
-              :src="gallery[currentIndex].src"
-              :alt="gallery[currentIndex].alt"
+              :src="gallery[currentIndex]?.src"
+              :alt="gallery[currentIndex]?.alt || landmark.name"
               decoding="async"
               fetchpriority="high"
             />
@@ -96,8 +96,6 @@
             </div>
           </div>
         </section>
-
-    
       </main>
 
       <!-- 사이드 -->
@@ -124,19 +122,25 @@
 </template>
 
 <script setup>
+/**
+ * Excel(XLSX) → 화면 렌더까지 풀 파이프라인
+ * - /public/data 안의 여러 xlsx를 순회 로드
+ * - 컬럼 이름 유연 매핑(한글/영문 혼용, basic:/guide: 확장)
+ * - 이미지: URL 또는 /public/images/파일명.jpg 자동 처리
+ */
 import { ref, computed, watchEffect, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-
-/** 안전한 이미지 경로 (Vite 권장) */
-const imgGyeongju = new URL('@/assets/images/card-gyeongju.jpg', import.meta.url).href
-const imgJeju     = new URL('@/assets/images/card-jeju.jpg', import.meta.url).href
-const imgJeonju   = new URL('@/assets/images/card-jeonju.jpg', import.meta.url).href
+import * as XLSX from 'xlsx'
 
 const route = useRoute()
+
+/** 상태 */
+const landmarks = ref([])
 const landmark = ref(null)
 const currentIndex = ref(0)
 const tab = ref('guide')
 const thumbsEl = ref(null)
+const isLoading = ref(true)
 
 /** 상세 더보기 상태/측정 */
 const detailRef = ref(null)
@@ -144,114 +148,115 @@ const isOverflow = ref(false)
 const isDetailExpanded = ref(false)
 const toggleExpand = () => { isDetailExpanded.value = !isDetailExpanded.value }
 
-/** 샘플 데이터 */
-const sampleLandmarks = [
-  {
-    id: '1',
-    name: '경복궁',
-    location: '서울 종로구',
-    image: imgGyeongju,
-    images: [
-      { src: imgGyeongju, alt: '경복궁 근정전 전경' },
-      { src: imgJeonju,   alt: '경복궁 사계절 풍경' },
-      { src: imgJeju,     alt: '경복궁 야간 개장' }
-    ],
-    tags: ['#고궁', '#역사'],
-    description: '조선 왕조 제일의 법궁으로, 웅장한 건축미와 아름다운 정원을 거닐며 역사의 숨결을 느껴보세요.',
-    basic: [
-      { label: '주소', value: '서울특별시 종로구 사직로 161' },
-      { label: '홈페이지', value: 'royalpalace.go.kr' }
-    ],
-    guide: [
-      { label: '문의 및 안내', value: '02-3700-3900' },
-      { label: '쉬는날', value: '화요일' },
-      { label: '이용시간', value: '09:00~18:00(계절별 상이)' }
-    ],
-    detail: `경복궁은 1395년에 창건된 조선 왕조의 법궁으로 설치된 이후 ... (길게) 
-역사·건축·정원·문화재 등 다양한 유산을 품고 있으며, 계절마다 다른 풍경으로 시민과 관광객에게 사랑받는 명소입니다. 
-야간 개장 기간에는 조명과 함께 색다른 분위기를 느낄 수 있습니다.`
-  },
-  {
-    id: '2',
-    name: '성산일출봉',
-    location: '제주 서귀포시',
-    image: imgJeju,
-    images: [
-      { src: imgJeju,   alt: '성산일출봉 전경' },
-      { src: imgGyeongju, alt: '성산 둘레길' },
-      { src: imgJeonju,  alt: '일출 명소' }
-    ],
-    tags: ['#자연', '#오름'],
-    description: '정상에서 바라보는 일출이 장관. 유네스코 세계자연유산.',
-    basic: [
-      { label: '주소', value: '제주특별자치도 서귀포시 성산읍' },
-      { label: '주차', value: '주차장 보유' }
-    ],
-    guide: [
-      { label: '문의 및 안내', value: '064-000-0000' },
-      { label: '이용시간', value: '상시 개방' }
-    ],
-    detail: `성산일출봉은 약 5천 년 전 바닷속에서 분출한 화산체로 형성되었으며 ...
-정상에서 바라보는 일출이 특히 장관으로 알려져 있습니다.`
-  },
-  {
-    id: '3',
-    name: '전주 한옥마을',
-    location: '전북 전주시',
-    image: imgJeonju,
-    images: [
-      { src: imgJeonju, alt: '전주 한옥마을 길' },
-      { src: imgGyeongju, alt: '전통 가옥' }
-    ],
-    tags: ['#한옥', '#문화'],
-    description: '700여 채의 한옥이 군락을 이루는 국내 최대 규모의 한옥촌.',
-    basic: [
-      { label: '주소', value: '전북 전주시 완산구 기린대로 일대' }
-    ],
-    guide: [
-      { label: '이용시간', value: '상시 개방' }
-    ],
-    detail: `전주 한옥마을은 전통과 현대가 공존하는 공간으로 ...
-전통문화 체험과 다양한 음식, 카페, 전시가 밀집해 있어 여행객에게 인기입니다.`
-  },
-  {
-    id: '5',
-    name: '첨성대',
-    location: '경북 경주시',
-    image: imgJeju,
-    images: [
-      { src: imgJeju, alt: '첨성대 전경' },
-      { src: imgGyeongju, alt: '경주 야경' }
-    ],
-    tags: ['#유적', '#신라'],
-    description: '신라 시대 천문 관측 시설로 동양에서 가장 오래된 천문대.',
-    basic: [
-      { label: '주소', value: '경북 경주시 인왕동 839-1' }
-    ],
-    guide: [
-      { label: '이용시간', value: '상시 개방' }
-    ],
-    detail: `첨성대는 통일신라 이전에 축조된 석조 건축물로 ...
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다.
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다
-야간 조명과 함께 고즈넉한 분위기를 자아내며 많은 이들이 찾는 명소입니다`
+/** ========== 유틸 ========== */
+/** 문자열 분리: , ; | 구분자 모두 허용 */
+const splitList = (v) => {
+  if (v == null) return []
+  return String(v).split(/[;,|]/).map(s => s.trim()).filter(Boolean)
+}
+/** 이미지 경로 처리: 절대/상대/파일명 → 최종 URL */
+const resolveImage = (p) => {
+  if (!p) return ''
+  const s = String(p).trim()
+  if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')) return s
+  // 파일명만 왔을 때는 /public/images 밑에서 찾는다.
+  return `/images/${s}`
+}
+/** 태그 전처리: # 없으면 붙여준다 */
+const normalizeTags = (arr) =>
+  arr.map(t => t.startsWith('#') ? t : `#${t}`)
 
+/** 한 행 → 랜드마크 객체 매핑 */
+const mapRowToLandmark = (r) => {
+  const name = r.name || r.Name || r.이름 || '이름없음'
+
+  // 이미지: images(다중) 우선, 없으면 image(단일)
+  const imageList = splitList(r.images ?? r.Images ?? r.이미지 ?? r.이미지들 ?? '')
+  const images = imageList.length
+    ? imageList.map(src => ({ src: resolveImage(src), alt: `${name} 사진` }))
+    : ((r.image || r.Image || r.대표이미지) ? [{ src: resolveImage(r.image || r.Image || r.대표이미지), alt: name }] : [])
+
+  // 기본정보 / 이용안내 표
+  const basic = []
+  const guide = []
+  // 고정 필드(있으면 자동 주입)
+  if (r.basic_address || r.주소) basic.push({ label: '주소', value: r.basic_address || r.주소 })
+  if (r.basic_homepage || r.홈페이지) basic.push({ label: '홈페이지', value: r.basic_homepage || r.홈페이지 })
+  if (r.guide_phone || r.문의 || r.문의번호) guide.push({ label: '문의 및 안내', value: r.guide_phone || r.문의 || r.문의번호 })
+  if (r.guide_closed || r.쉬는날) guide.push({ label: '쉬는날', value: r.guide_closed || r.쉬는날 })
+  if (r.guide_hours || r.이용시간) guide.push({ label: '이용시간', value: r.guide_hours || r.이용시간 })
+
+  // 자유 확장: basic:라벨 / guide:라벨
+  Object.keys(r).forEach(k => {
+    const low = k.toLowerCase()
+    if (low.startsWith('basic:')) basic.push({ label: k.slice(6).trim(), value: r[k] })
+    if (low.startsWith('guide:')) guide.push({ label: k.slice(6).trim(), value: r[k] })
+  })
+
+  return {
+    id: String(r.id ?? r.ID ?? r.아이디 ?? r.No ?? ''),
+    name,
+    location: r.location ?? r.Location ?? r.지역 ?? '',
+    image: images[0]?.src || '',
+    images,
+    tags: normalizeTags(splitList(r.tags ?? r.Tags ?? r.태그 ?? '')),
+    description: r.description ?? r.Description ?? r.소개 ?? '',
+    basic,
+    guide,
+    detail: r.detail ?? r.Detail ?? r.상세 ?? ''
   }
+}
+
+/** ========== 엑셀 로딩 ========== */
+/** 개별 파일 로드 → JSON 배열 */
+const fetchSheet = async (url) => {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const buf = await res.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    return XLSX.utils.sheet_to_json(ws, { defval: '' })
+  } catch (e) {
+    // 파일이 없을 수도 있으니 조용히 빈 배열 반환
+    console.warn('[엑셀 로딩 스킵]', url, e?.message || e)
+    return []
+  }
+}
+
+/** 여러 파일 합쳐서 landmarks 구성 */
+const DATA_FILES = [
+  // 필요에 맞게 수정해서 /public/data 에 배치
+  '/data/관광명소 안보관광.xlsx',
+  '/data/관광명소 문.xlsx',
+  // '/data/landmarks.xlsx', // 통합본을 쓸 거라면 이 한 줄만 남겨도 됨
 ]
 
-/** 현재 라우트 id에 맞는 랜드마크 찾기 */
+const loadAllExcels = async () => {
+  isLoading.value = true
+  try {
+    let rows = []
+    for (const f of DATA_FILES) {
+      const part = await fetchSheet(f)
+      rows = rows.concat(part)
+    }
+    landmarks.value = rows.map(mapRowToLandmark).filter(x => x.id && x.name)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/** 초기 로딩 */
+onMounted(loadAllExcels)
+
+/** 라우트 id에 맞는 랜드마크 선택 */
 watchEffect(() => {
   const id = String(route.params.id ?? '')
-  landmark.value = sampleLandmarks.find(x => x.id === id) ?? null
+  landmark.value =
+    landmarks.value.find(x => String(x.id) === id) ??
+    landmarks.value[0] ??
+    null
+
   currentIndex.value = 0
   tab.value = 'guide'
   isDetailExpanded.value = false
@@ -261,12 +266,12 @@ watchEffect(() => {
   })
 })
 
-/** 갤러리 소스 (없으면 단일 이미지로 fallback) */
+/** 갤러리 소스 (없으면 빈 배열) */
 const gallery = computed(() => {
   if (!landmark.value) return []
   return landmark.value.images?.length
     ? landmark.value.images
-    : [{ src: landmark.value.image, alt: landmark.value.name }]
+    : (landmark.value.image ? [{ src: landmark.value.image, alt: landmark.value.name }] : [])
 })
 
 /** 갤러리 이동 */
@@ -330,7 +335,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', onResize))
 
 /* Gallery */
 .gallery { margin-bottom: 22px; }
-.hero-image { position: relative; width: 100%; height: clamp(208px, 38.4vw, 360px); /* 20% 축소 반영 */
+.hero-image { position: relative; width: 100%; height: clamp(208px, 38.4vw, 360px);
   border-radius: 16px; overflow: hidden; outline: none; }
 .hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
@@ -391,6 +396,7 @@ h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #222; line-hei
   border-radius: 8px; padding: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; text-decoration: none; }
 
 .loading-container { display: flex; justify-content: center; align-items: center; height: 50vh; }
+
 
 /* 반응형 */
 @media (max-width: 992px) {

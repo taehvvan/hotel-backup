@@ -509,7 +509,7 @@ const search = () => {
   padding: 0 8px 8px;
   display: grid;
   grid-template-columns: repeat(3, 1fr); /* 3개의 열로 변경 */
-  gap: 16px; /* 간격을 더 넓게 설정 */
+  gap: 8px; /* 간격을 더 넓게 설정 */
 }
 
 .dest-row {
@@ -555,9 +555,6 @@ const search = () => {
     grid-template-columns: 1fr; /* 화면 크기가 작을 때는 1개의 열로 표시 */
   }
 }
-
-
-/* ====== 달력 ====== */
 /* ====== 달력 ====== */
 .calendar-popup {
   display: flex; /* 두 달을 나란히 표시 */
@@ -583,6 +580,7 @@ const search = () => {
 .month-name {
   font-weight: 700;
   margin-bottom: 6px;
+  align-items: center;
   color: #111827;
 }
 
