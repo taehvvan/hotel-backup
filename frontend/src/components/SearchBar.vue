@@ -155,6 +155,7 @@
 
 <script setup>
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router'
 
 /* ===== 상태 ===== */
 const searchSectionRef = ref(null);
@@ -178,14 +179,25 @@ const guestPos = reactive({ top: 0, left: 0 });
 const checkIn = ref(null);
 const checkOut = ref(null);
 
-const rooms = ref(0);
-const persons = ref(0);
-const hasGuestSelection = ref(false);
+const rooms = ref(1);
+const persons = ref(2);
+
+const router = useRouter()  
+const route = useRoute();
 
 const guestTypes = [
-  { type: 'rooms',   label: '객실', min: 0, max: 5 },
-  { type: 'persons', label: '인원', min: 0, max: 20 },
+  { type: 'rooms',   label: '객실', min: 1, max: 5 },
+  { type: 'persons', label: '인원', min: 1, max: 20 },
 ];
+
+onMounted(() => {
+  // 쿼리 파라미터에서 값 가져오기
+  if (route.query.region) destination.value = route.query.region;
+  if (route.query.startDate) checkIn.value = new Date(route.query.startDate);
+  if (route.query.endDate) checkOut.value = new Date(route.query.endDate);
+  if (route.query.rooms) rooms.value = parseInt(route.query.rooms);
+  if (route.query.persons) persons.value = parseInt(route.query.persons);
+});
 
 /* ===== 공통 close ===== */
 const closeAllPopups = () => {
@@ -353,16 +365,16 @@ const setValue = (type, v) => { if (type === 'rooms') rooms.value = v; else pers
 const increment = (type) => {
   const meta = guestTypes.find(g => g.type === type);
   const cur = getValue(type);
-  if (cur < meta.max) { setValue(type, cur + 1); hasGuestSelection.value = true; }
+  if (cur < meta.max) { setValue(type, cur + 1);}
 };
 const decrement = (type) => {
   const meta = guestTypes.find(g => g.type === type);
   const cur = getValue(type);
-  if (cur > meta.min) { setValue(type, cur - 1); hasGuestSelection.value = true; }
+  if (cur > meta.min) { setValue(type, cur - 1);}
 };
-const confirmGuests = () => { hasGuestSelection.value = true; closeAllPopups(); };
+const confirmGuests = () => { closeAllPopups(); };
 const guestsSummary = computed(() =>
-  hasGuestSelection.value ? `객실 ${rooms.value}개, 인원 ${persons.value}명` : '인원 선택'
+  `객실 ${rooms.value}개, 인원 ${persons.value}명`
 );
 
 /* ===== 목적지 추천 데이터 ===== */
@@ -391,16 +403,47 @@ const toggleGuestSelector = async () => {
   updateAllPositions();
 };
 
-/* 검색 */
-const search = () => {
-  console.log('검색 조건:', {
-    destination: destination.value,
-    checkIn: checkIn.value,
-    checkOut: checkOut.value,
-    rooms: rooms.value,
-    persons: persons.value,
-  });
-};
+const search = async () => {
+  if (!destination.value || destination.value.trim() === '') {
+    alert('목적지를 입력해주세요.');
+    return;
+  }
+
+  // 날짜 체크
+  if (!checkIn.value || !checkOut.value) {
+    alert('체크인/체크아웃 날짜를 선택해주세요.');
+    return;
+  }
+
+  // 객실 수/인원 체크
+  if (!rooms.value || rooms.value <= 0) {
+    alert('객실 수는 1개 이상이어야 합니다.');
+    return;
+  }
+  if (!persons.value || persons.value <= 0) {
+    alert('인원 수는 1명 이상이어야 합니다.');
+    return;
+  }
+  
+  const requestBody = {
+    region: destination.value,
+    startDate: checkIn.value.toISOString().split('T')[0],
+    endDate: checkOut.value.toISOString().split('T')[0],
+    numberOfRooms: rooms.value,
+    numberOfPeople: persons.value,
+  };
+
+  router.push({
+    path: '/search',
+      query: {              // URL 파라미터로 넘기기 (조건 확인용)
+        region: requestBody.region,
+        startDate: requestBody.startDate,
+        endDate: requestBody.endDate,
+        rooms: requestBody.numberOfRooms,
+        persons: requestBody.numberOfPeople,
+      }
+    });
+  }  
 </script>
 
 <style scoped>
