@@ -1,56 +1,109 @@
 <template>
-  <div class="login-container">
-    <div class="login-wrapper">
-      <div class="login-header">
-        <router-link to="/" class="logo">쉼, 한국</router-link>
+  <div class="register-container">
+    <div class="register-wrapper">
+      <div class="register-header">
+        <h2>회원가입</h2>
       </div>
 
-      <div class="input-group">
-        <input type="email" id="email" v-model="email" placeholder="이메일 주소" required>
-      </div>
-      <div class="input-group">
-        <input type="password" id="password" v-model="password" placeholder="비밀번호" required>
-      </div>
-      <button type="button" class="btn-login-email" @click="handleEmailLogin">로그인</button>
+      <form @submit.prevent="handleRegister" class="register-form">
+        <div class="input-group">
+          <input type="text" id="name" v-model="name" placeholder="이름" required>
+        </div>
+        <div class="input-group">
+          <input type="email" id="email" v-model="email" placeholder="이메일 주소" required>
+        </div>
+        <div class="input-group">
+          <input type="password" id="password" v-model="password" placeholder="비밀번호" required>
+        </div>
+        <div class="input-group">
+          <input type="password" id="passwordConfirm" v-model="passwordConfirm" placeholder="비밀번호 확인" required>
+        </div>
+        <button type="submit" class="btn-register">회원가입</button>
+      </form>
 
       <div class="extra-links">
-        <a href="#">비밀번호 찾기</a>
-        <span class="divider">|</span>
-        <router-link to="/register">회원가입</router-link>
+        <span>이미 계정이 있으신가요?</span>
+        <router-link to="/login">로그인</router-link>
       </div>
 
-      <div class="separator"><span>SNS 계정으로 로그인</span></div>
+      <div class="separator"><span>SNS 계정으로 간편 가입</span></div>
 
       <div class="social-login">
         <button type="button" class="btn-social kakao" @click="kakaoLogin">
-          <svg viewBox="0 0 32 32"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 4.66c-6.26 0-11.34 4.41-11.34 9.85C4.66 20.3 9.74 24.7 16 24.7c1.83 0 3.55-.4 5.1-1.12l3.43 3.42c.45.44 1.12.33 1.45-.19.33-.52.2-1.2-.2-1.64l-3.2-3.21c2.6-1.9 4.32-4.95 4.32-8.42 0-5.44-5.08-9.85-11.34-9.85z"></path></svg>
+          <img src="https://www.kakaocorp.com/page/favicon.ico" alt="Kakao"/>
+          카카오 계정으로 가입
         </button>
         <button type="button" class="btn-social google" @click="handleGoogleLogin">
-          <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path><path d="M1 1h22v22H1z" fill="none"></path></svg>
+          <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google"/>
+          Google 계정으로 가입
         </button>
       </div>
 
-      <div class="manager-login-link">
-        <router-link to="/manager-login">호텔 매니저이신가요?</router-link>
+      <div class="separator"></div>
+
+      <div class="manager-signup">
+        <router-link to="/manager-register">호텔 관리자이신가요?</router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
 
+const route = useRoute();
 const router = useRouter();
 
+const name = ref('');
 const email = ref('');
 const password = ref('');
+const passwordConfirm = ref('');
 
-const handleEmailLogin = () => {
-  alert(`${email.value}로 로그인을 시도합니다.`);
+onMounted(() => {
+  // 백엔드에서 로그인 성공 후 리디렉션 처리 로직 (선택 사항)
+  // 이 로직은 백엔드에서 로그인 성공 후 프론트엔드로 리디렉션할 때 사용됩니다.
+  // const token = route.query.token;
+  // if (token) {
+  //   localStorage.setItem('userToken', token);
+  //   alert('카카오 로그인이 완료되었습니다!');
+  //   router.push('/');
+  // }
+});
+
+const handleRegister = async () => {
+  if (password.value !== passwordConfirm.value) {
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  if (!password.value) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+  }
+  
+  try {
+    const data = {
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      passwordConfirm: passwordConfirm.value,
+    };
+
+    const response = await axios.post('http://localhost:8888/api/register', data);
+
+    if (response.data.success) {
+      alert('회원가입이 완료되었습니다!');
+      router.push({ name: 'RegisterSuccess', query: { name: name.value } });
+    } else {
+      alert('회원가입에 실패했습니다.');
+    }
+  } catch (error) {
+    const message = error.response?.data?.message || error.message;
+    alert('회원가입 요청 실패: ' + message);
+  }
 };
 
-// 카카오 로그인 함수
 const kakaoLogin = () => {
   window.location.href = 'http://localhost:8888/api/kakao/login';
 };
@@ -64,7 +117,7 @@ const handleGoogleLogin = () => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700&display=swap');
 
-.login-container {
+.register-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -74,28 +127,32 @@ const handleGoogleLogin = () => {
   box-sizing: border-box;
 }
 
-.login-wrapper {
+.register-wrapper {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   text-align: center;
+  background-color: #fff;
+  padding: 50px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
 }
 
-.login-header {
-  margin-bottom: 40px;
-}
-
-.login-header .logo {
+.register-header { margin-bottom: 30px; }
+.register-header .logo {
   font-family: 'Nanum Myeongjo', serif;
   font-size: 2.5rem;
   font-weight: 700;
   color: #333;
   text-decoration: none;
 }
-
-.input-group {
-  margin-bottom: 15px;
+.register-header h2 {
+  margin: 10px 0 0 0;
+  font-size: 1.2rem;
+  color: #666;
+  font-weight: 500;
 }
 
+.input-group { margin-bottom: 15px; }
 .input-group input {
   width: 100%;
   padding: 14px 20px;
@@ -103,15 +160,13 @@ const handleGoogleLogin = () => {
   border: 1px solid #DCDCDC;
   border-radius: 8px;
   box-sizing: border-box;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(5px);
 }
 .input-group input:focus {
   outline: none;
   border-color: #A0A0A0;
 }
 
-.btn-login-email {
+.btn-register {
   width: 100%;
   padding: 14px;
   margin-top: 10px;
@@ -129,12 +184,13 @@ const handleGoogleLogin = () => {
   font-size: 0.9rem;
 }
 .extra-links a {
-  color: #555;
+  color: #0A2A66;
   text-decoration: none;
+  font-weight: 600;
+  margin-left: 5px;
 }
-.extra-links .divider {
-  margin: 0 10px;
-  color: #ccc;
+.extra-links a:hover {
+  text-decoration: underline;
 }
 
 .separator {
@@ -142,59 +198,45 @@ const handleGoogleLogin = () => {
   align-items: center;
   text-align: center;
   color: #aaa;
-  margin: 40px 0 20px 0;
+  margin: 30px 0;
 }
-.separator::before,
-.separator::after {
+.separator::before, .separator::after {
   content: '';
   flex: 1;
   border-bottom: 1px solid #eee;
 }
-.separator span {
-  padding: 0 15px;
-  font-size: 0.9rem;
-}
+.separator span { padding: 0 15px; font-size: 0.9rem; }
 
 .social-login {
   display: flex;
-  justify-content: center;
-  gap: 20px;
+  flex-direction: column;
+  gap: 10px;
 }
-
 .btn-social {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  padding: 0;
-  cursor: pointer;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   display: flex;
-  justify-content: center;
   align-items: center;
-}
-.btn-social svg {
-  width: 24px;
-  height: 24px;
-}
-.btn-social.kakao svg {
-  width: 28px;
-  height: 28px;
-}
-
-.manager-login-link {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-}
-.manager-login-link a { 
-  font-size: 0.95rem;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  font-size: 1rem;
   font-weight: 500;
-  color: #555;
-  text-decoration: none;
+  cursor: pointer;
 }
-.manager-login-link a:hover {
+.btn-social img { width: 24px; height: 24px; }
+.btn-social.kakao { background-color: #FEE500; border-color: #FEE500; }
+
+.manager-signup { text-align: center; }
+.manager-signup a {
+  color: #555;
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.manager-signup a:hover {
   text-decoration: underline;
 }
 </style>
