@@ -47,7 +47,7 @@ public class JwtTokenProvider {
                 .compact();
     }
     
-    public String createToken(String email, String role) {
+    public String createToken(String email, String role) { //카카오 로그인 token
         Claims claims = Jwts.claims().setSubject(email);
         claims.put("role", role);
 
