@@ -73,7 +73,7 @@ public class SecurityContext {
                         //"/api/auth/social/kakao/callback",
                         "/api/google/login",
                         "/api/google/callback",
-                        "/", "/search",
+                        "/", "/api/search",
                         "/hotel/**", "/landmark/**", "/heritage/**",
                         "/terms", "/privacy",
                         "/accommodations", "/landmarks", "/heritage",
