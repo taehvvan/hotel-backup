@@ -11,4 +11,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByEmailAndSocial(String email, String social);
 
+    // 리프레시 토큰으로 사용자 조회
+    Optional<UserEntity> findByRefreshToken(String refreshToken);
 }

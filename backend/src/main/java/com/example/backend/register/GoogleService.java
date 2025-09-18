@@ -65,27 +65,24 @@ public class GoogleService {
     }
 
 
-    // ✅ Mono<Map> -> Map으로 반환 타입 변경
-    public Map<String, Object> getGoogleTokens(String code) {
-    return webClient.post()
-            .uri("/token")
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-            .body(BodyInserters.fromFormData("grant_type", "authorization_code")
-                .with("client_id", clientId)
-                .with("client_secret", clientSecret)
-                .with("redirect_uri", redirectUri)
-                .with("code", code))
-            .retrieve()
-            .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
-                clientResponse.bodyToMono(String.class).flatMap(body -> reactor.core.publisher.Mono.error(new RuntimeException("Google API error: " + body)))
-            )
-            .onStatus(HttpStatusCode::is5xxServerError, clientResponse ->
-                reactor.core.publisher.Mono.error(new RuntimeException("Google server error: " + clientResponse.statusCode()))
-            )
-            // ✅ Map<String, Object>를 안전하게 받기 위해 ParameterizedTypeReference 사용
-            .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {}) 
-            .block();
-}
+    public String getIdToken(String code) {
+        Map<String, Object> tokens = webClient.post()
+                .uri("/token")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .body(BodyInserters.fromFormData("grant_type", "authorization_code")
+                    .with("client_id", clientId)
+                    .with("client_secret", clientSecret)
+                    .with("redirect_uri", redirectUri)
+                    .with("code", code))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block();
+    
+        if (tokens == null || !tokens.containsKey("id_token")) {
+            throw new IllegalArgumentException("Failed to retrieve ID token from Google.");
+        }
+        return (String) tokens.get("id_token");
+    }
     
     // ✅ Mono<UserEntity> -> UserEntity로 반환 타입 변경
     public UserEntity getUserInfo(String idToken) throws GeneralSecurityException, IOException {
@@ -107,21 +104,15 @@ public class GoogleService {
 
     // ✅ 최종 로그인/등록 메서드도 일반 객체 반환으로 변경
     public UserEntity googleLoginOrRegister(String code) throws Exception {
-        Map<String, Object> tokens = getGoogleTokens(code);
-        String idToken = (String) tokens.get("id_token");
+        String idToken = getIdToken(code);
         UserEntity googleUser = getUserInfo(idToken);
-
-        // ✅ JPA 레포지토리는 동기식이므로 그대로 사용 가능
-        UserEntity existingUser = userRepository.findByEmailAndSocial(googleUser.getEmail(), "google")
-                                              .orElse(null);
-        
-        if (existingUser != null) {
-            return existingUser;
-        } else {
-            googleUser.setPassword(null);
-            googleUser.setSocial("google");
-            googleUser.setRole("USER");
-            return userRepository.save(googleUser);
-        }
+    
+        return userRepository.findByEmailAndSocial(googleUser.getEmail(), "google")
+                .orElseGet(() -> {
+                    googleUser.setPassword(null);
+                    googleUser.setRole("USER");
+                    googleUser.setSocial("google");
+                    return userRepository.save(googleUser);
+                });
     }
 }

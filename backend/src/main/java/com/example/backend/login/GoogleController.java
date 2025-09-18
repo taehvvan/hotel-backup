@@ -2,6 +2,7 @@ package com.example.backend.login;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +22,9 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api")
 public class GoogleController {
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private GoogleService googleService;
@@ -48,16 +52,30 @@ public class GoogleController {
     }
 
     @GetMapping("/google/callback")
-    public RedirectView googleLogin(@RequestParam("code") String code) {
-    try {
-        UserEntity user = googleService.googleLoginOrRegister(code);
-        String jwt = jwtTokenProvider.createToken(user.getEmail(), user.getRole());
-        
-        // ✅ 성공 시 리다이렉트 URL을 명확하게 변경
-        return new RedirectView("http://localhost:5173/google/callback?token=" + jwt);
-    } catch (Exception e) {
-        System.err.println("Google 로그인 실패: " + e.getMessage());
-        return new RedirectView(FRONTEND_FAILURE_REDIRECT_URL + "?error=google_failed");
-    }
+    public ResponseEntity<TokenResponse> googleLogin(@RequestParam("code") String code) {
+        try {
+            UserEntity user = googleService.googleLoginOrRegister(code);
+
+            // 액세스 토큰 + 리프레시 토큰 생성
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+            // DB에 리프레시 토큰 저장
+            userService.saveRefreshToken(user, refreshToken);
+
+            // 토큰 반환 (프론트엔드에서 처리)
+            return ResponseEntity.ok(
+                    new TokenResponse(
+                            "Bearer",
+                            accessToken,
+                            refreshToken,
+                            jwtTokenProvider.getAccessTokenExpirationInMilliSeconds()
+                    )
+            );
+
+        } catch (Exception e) {
+            System.err.println("Google 로그인 실패: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 }
