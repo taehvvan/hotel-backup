@@ -27,7 +27,7 @@ onMounted(async () => {
       // loginSuccess는 Pinia 스토어의 액션이어야 합니다.
       await authStore.loginSuccess(token);
 
-      alert('로그인 성공!');
+      //alert('로그인 성공!');
       router.push({ name: 'MainPage' });
     } catch (error) {
       console.error('로그인 실패:', error);

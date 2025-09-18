@@ -7,10 +7,12 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
-    UserEntity findByEmail(String email);
 
     Optional<UserEntity> findByEmailAndSocial(String email, String social);
 
+    boolean existsByEmail(String email);
+
     // 리프레시 토큰으로 사용자 조회
     Optional<UserEntity> findByRefreshToken(String refreshToken);
+
 }

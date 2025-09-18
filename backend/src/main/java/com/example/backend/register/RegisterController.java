@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
+
 import java.util.Collections;
 import java.util.Map;
 
@@ -22,7 +25,7 @@ public class RegisterController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Boolean>> registerUser(@RequestBody UserDTO userDto) {
+    public ResponseEntity<Map<String, Boolean>> registerUser(@Valid @RequestBody UserDTO userDto) {
         boolean isRegistered = userService.registerUser(userDto);
         if (isRegistered) {
             // 성공 시 success: true를 포함하는 JSON 응답 반환
