@@ -1,5 +1,11 @@
 <template>
-  <div v-if="landmark" class="detail-page-container">
+  <!-- 1) 로딩 -->
+  <div v-if="isLoading" class="loading-container">
+    <p>데이터를 불러오는 중입니다...</p>
+  </div>
+
+  <!-- 2) 데이터 OK -->
+  <div v-else-if="landmark" class="detail-page-container">
     <div class="content-wrapper">
       <main class="main-content-column">
         <!-- breadcrumbs -->
@@ -11,8 +17,8 @@
           <span>{{ landmark.name }}</span>
         </nav>
 
-        <!-- GALLERY: 메인 이미지 + 썸네일 -->
-        <section class="gallery" aria-label="이미지 갤러리">
+        <!-- 갤러리: 이미지가 있을 때만 표시 -->
+        <section v-if="gallery.length" class="gallery" aria-label="이미지 갤러리">
           <div
             class="hero-image"
             tabindex="0"
@@ -54,7 +60,7 @@
           <p class="location">📍 {{ landmark.location }}</p>
         </div>
 
-        <!-- 탭: 기본정보 / 이용안내 / 상세정보 -->
+        <!-- 탭 -->
         <section class="info-card">
           <div class="tabs">
             <button :class="{active: tab==='basic'}" @click="tab='basic'">기본정보</button>
@@ -71,7 +77,6 @@
             </tbody>
           </table>
 
-          <!-- 상세정보: 더보기/접기 -->
           <div v-else class="detail-wrap">
             <div
               ref="detailRef"
@@ -81,14 +86,8 @@
               {{ landmark.detail }}
             </div>
 
-            <!-- 하단 그라데이션 (접힌 상태 & 넘칠 때만) -->
-            <div
-              v-if="!isDetailExpanded && isOverflow"
-              class="fade"
-              aria-hidden="true"
-            ></div>
+            <div v-if="!isDetailExpanded && isOverflow" class="fade" aria-hidden="true"></div>
 
-            <!-- 더보기/접기 버튼 (넘칠 때만 노출) -->
             <div v-if="isOverflow" class="more-wrap">
               <button class="btn-more" @click="toggleExpand">
                 {{ isDetailExpanded ? '접기' : '더보기' }}
@@ -103,7 +102,7 @@
         <div class="sticky-sidebar">
           <div class="nearby-hotel-card">
             <h3>근처 숙소 찾아보기</h3>
-            <p>'{{ landmark.location }}' 근처의 멋진 숙소들을 둘러보세요.</p>
+            <p>'{{ landmark.name }}' 근처의 멋진 숙소들을 둘러보세요.</p>
             <router-link
               :to="{ name: 'SearchResult', query: { destination: landmark.location } }"
               class="btn-find-hotels"
@@ -116,18 +115,13 @@
     </div>
   </div>
 
+  <!-- 3) 비어있음 -->
   <div v-else class="loading-container">
-    <p>데이터를 불러오는 중입니다...</p>
+    <p>데이터가 없습니다. 엑셀 파일 경로나 컬럼을 확인해 주세요.</p>
   </div>
 </template>
 
 <script setup>
-/**
- * Excel(XLSX) → 화면 렌더까지 풀 파이프라인
- * - /public/data 안의 여러 xlsx를 순회 로드
- * - 컬럼 이름 유연 매핑(한글/영문 혼용, basic:/guide: 확장)
- * - 이미지: URL 또는 /public/images/파일명.jpg 자동 처리
- */
 import { ref, computed, watchEffect, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import * as XLSX from 'xlsx'
@@ -148,38 +142,38 @@ const isOverflow = ref(false)
 const isDetailExpanded = ref(false)
 const toggleExpand = () => { isDetailExpanded.value = !isDetailExpanded.value }
 
-/** ========== 유틸 ========== */
-/** 문자열 분리: , ; | 구분자 모두 허용 */
+/** 유틸 */
 const splitList = (v) => {
   if (v == null) return []
-  return String(v).split(/[;,|]/).map(s => s.trim()).filter(Boolean)
+  // 쉼표, 세미콜론, |, 공백 여러 개를 구분자로 허용
+  return String(v).split(/[;,|\s]+/).map(s => s.trim()).filter(Boolean)
 }
-/** 이미지 경로 처리: 절대/상대/파일명 → 최종 URL */
 const resolveImage = (p) => {
   if (!p) return ''
   const s = String(p).trim()
   if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')) return s
-  // 파일명만 왔을 때는 /public/images 밑에서 찾는다.
   return `/images/${s}`
 }
-/** 태그 전처리: # 없으면 붙여준다 */
 const normalizeTags = (arr) =>
-  arr.map(t => t.startsWith('#') ? t : `#${t}`)
+  arr
+    .map(t => t.startsWith('#') ? t : `#${t}`)
+    .filter((t, i, a) => a.indexOf(t) === i) // 중복 제거
 
-/** 한 행 → 랜드마크 객체 매핑 */
-const mapRowToLandmark = (r) => {
-  const name = r.name || r.Name || r.이름 || '이름없음'
+/** 한 행 → 랜드마크 객체 매핑 (id 자동 생성 포함) */
+const mapRowToLandmark = (r, idx) => {
+  const name = r.name || r.Name || r.이름 || r['명칭'] || '이름없음'
 
-  // 이미지: images(다중) 우선, 없으면 image(단일)
+  // 이미지
   const imageList = splitList(r.images ?? r.Images ?? r.이미지 ?? r.이미지들 ?? '')
   const images = imageList.length
     ? imageList.map(src => ({ src: resolveImage(src), alt: `${name} 사진` }))
-    : ((r.image || r.Image || r.대표이미지) ? [{ src: resolveImage(r.image || r.Image || r.대표이미지), alt: name }] : [])
+    : ((r.image || r.Image || r.대표이미지)
+        ? [{ src: resolveImage(r.image || r.Image || r.대표이미지), alt: name }]
+        : [])
 
-  // 기본정보 / 이용안내 표
+  // 기본정보 / 이용안내
   const basic = []
   const guide = []
-  // 고정 필드(있으면 자동 주입)
   if (r.basic_address || r.주소) basic.push({ label: '주소', value: r.basic_address || r.주소 })
   if (r.basic_homepage || r.홈페이지) basic.push({ label: '홈페이지', value: r.basic_homepage || r.홈페이지 })
   if (r.guide_phone || r.문의 || r.문의번호) guide.push({ label: '문의 및 안내', value: r.guide_phone || r.문의 || r.문의번호 })
@@ -193,61 +187,54 @@ const mapRowToLandmark = (r) => {
     if (low.startsWith('guide:')) guide.push({ label: k.slice(6).trim(), value: r[k] })
   })
 
+  // 태그: tags / 카테고리 / category 모두 합침
+  const tagFromTags = splitList(r.tags ?? r.Tags ?? r.태그 ?? '')
+  const tagFromCategory = splitList(r['카테고리'] ?? r['category'] ?? '')
+  const tags = normalizeTags([...tagFromTags, ...tagFromCategory])
+
   return {
-    id: String(r.id ?? r.ID ?? r.아이디 ?? r.No ?? ''),
+    id: String(r.id ?? r.ID ?? r.아이디 ?? r.No ?? (idx + 1)),
     name,
-    location: r.location ?? r.Location ?? r.지역 ?? '',
+    location: r.location ?? r.Location ?? r.지역 ?? r['주소'] ?? '',
     image: images[0]?.src || '',
     images,
-    tags: normalizeTags(splitList(r.tags ?? r.Tags ?? r.태그 ?? '')),
+    tags,
     description: r.description ?? r.Description ?? r.소개 ?? '',
+    detail: r.detail ?? r.Detail ?? r.상세 ?? r['상세정보'] ?? r['개요'] ?? '',
     basic,
     guide,
-    detail: r.detail ?? r.Detail ?? r.상세 ?? ''
   }
 }
 
-/** ========== 엑셀 로딩 ========== */
-/** 개별 파일 로드 → JSON 배열 */
+/** 엑셀 로딩 (단일 파일) */
 const fetchSheet = async (url) => {
   try {
-    const res = await fetch(url)
+    const res = await fetch(encodeURI(url))
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const buf = await res.arrayBuffer()
     const wb = XLSX.read(buf, { type: 'array' })
     const ws = wb.Sheets[wb.SheetNames[0]]
     return XLSX.utils.sheet_to_json(ws, { defval: '' })
   } catch (e) {
-    // 파일이 없을 수도 있으니 조용히 빈 배열 반환
     console.warn('[엑셀 로딩 스킵]', url, e?.message || e)
     return []
   }
 }
 
-/** 여러 파일 합쳐서 landmarks 구성 */
-const DATA_FILES = [
-  // 필요에 맞게 수정해서 /public/data 에 배치
-  '/data/관광명소 안보관광.xlsx',
-  '/data/관광명소 문.xlsx',
-  // '/data/landmarks.xlsx', // 통합본을 쓸 거라면 이 한 줄만 남겨도 됨
-]
+const DATA_FILE = '/data/landmarks.xlsx'
 
-const loadAllExcels = async () => {
+const loadExcel = async () => {
   isLoading.value = true
   try {
-    let rows = []
-    for (const f of DATA_FILES) {
-      const part = await fetchSheet(f)
-      rows = rows.concat(part)
-    }
-    landmarks.value = rows.map(mapRowToLandmark).filter(x => x.id && x.name)
+    const rows = await fetchSheet(DATA_FILE)
+    landmarks.value = rows.map((r, i) => mapRowToLandmark(r, i)).filter(x => x.name)
   } finally {
     isLoading.value = false
   }
 }
 
 /** 초기 로딩 */
-onMounted(loadAllExcels)
+onMounted(loadExcel)
 
 /** 라우트 id에 맞는 랜드마크 선택 */
 watchEffect(() => {
@@ -266,7 +253,7 @@ watchEffect(() => {
   })
 })
 
-/** 갤러리 소스 (없으면 빈 배열) */
+/** 갤러리 소스 */
 const gallery = computed(() => {
   if (!landmark.value) return []
   return landmark.value.images?.length
@@ -297,16 +284,14 @@ const scrollActiveThumbIntoView = () => {
   else if (al + aw > sl + vw) wrap.scrollTo({ left: al - vw + aw + 8, behavior: 'smooth' })
 }
 
-/** 상세 탭이 열릴 때/리사이즈 때 overflow 여부 측정 */
+/** 상세 탭 overflow 측정 */
 const measureOverflow = () => {
   const el = detailRef.value
   if (!el) { isOverflow.value = false; return }
-  // 접힌 상태에서 실제로 넘치는지 확인
   const wasExpanded = isDetailExpanded.value
   isDetailExpanded.value = false
   nextTick(() => {
     isOverflow.value = el.scrollHeight > el.clientHeight + 1
-    // 원래 확장 상태였다면 복구
     isDetailExpanded.value = wasExpanded
   })
 }
@@ -357,7 +342,6 @@ onBeforeUnmount(() => window.removeEventListener('resize', onResize))
 h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #222; line-height: 1.2; }
 .location { font-size: 1.05rem; color: #555; font-weight: 500; }
 
-/* Tabs */
 .info-card { background: #fff; border: 1px solid #E5E5E5; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
 .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 .tabs button { border: 1px solid #d6d6d6; background: #f9f9f9; color: #333;
@@ -368,10 +352,9 @@ h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #222; line-hei
 .info-table th, .info-table td { border-bottom: 1px solid #eee; padding: 10px 8px; text-align: left; }
 .info-table th { width: 28%; color: #6b7280; font-weight: 600; background: #fafafa; }
 
-/* 상세 더보기 */
 .detail-wrap { position: relative; }
 .detail-text { line-height: 1.7; white-space: pre-line; color: #444; transition: max-height .25s ease; }
-.detail-text.collapsed { max-height: 7.2em; /* 대략 4~5줄 */ overflow: hidden; }
+.detail-text.collapsed { max-height: 7.2em; overflow: hidden; }
 .fade {
   position: absolute; left: 0; right: 0; bottom: 42px; height: 48px;
   background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 70%);
@@ -384,21 +367,8 @@ h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #222; line-hei
 }
 .btn-more:hover { filter: brightness(0.96); }
 
-/* 소개 */
-.description-section h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
-.description-section p { font-size: 1.05rem; line-height: 1.8; color: #444; }
-
-.sticky-sidebar { position: sticky; top: 100px; }
-.nearby-hotel-card { background-color: #F8F9FA; border: 1px solid #E5E5E5; border-radius: 12px; padding: 22px; text-align: center; }
-.nearby-hotel-card h3 { font-size: 1.3rem; margin: 0 0 8px; }
-.nearby-hotel-card p { font-size: 0.98rem; color: #666; margin-bottom: 18px; }
-.btn-find-hotels { display: block; width: 100%; background-color: #0A2A66; color: #fff; border: none;
-  border-radius: 8px; padding: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; text-decoration: none; }
-
 .loading-container { display: flex; justify-content: center; align-items: center; height: 50vh; }
 
-
-/* 반응형 */
 @media (max-width: 992px) {
   .content-wrapper { grid-template-columns: 1fr; gap: 28px; }
   .sticky-sidebar { position: static; }
