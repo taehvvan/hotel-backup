@@ -29,7 +29,7 @@ onMounted(() => {
     console.log("4. 로그인 상태:", authStore.isLoggedIn);
     console.log("5. 유저 이름:", authStore.userName);
     
-    alert('로그인 성공!');
+    //alert('로그인 성공!');
     router.push({ name: 'MainPage' });
   } else {
     console.log("3. 토큰이 존재하지 않습니다.");

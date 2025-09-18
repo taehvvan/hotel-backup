@@ -4,6 +4,9 @@ import com.example.backend.login.dto.LoginRequest;
 import com.example.backend.login.dto.TokenResponse;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 import com.example.backend.login.security.jwt.LoginDTO;
+
+import java.util.NoSuchElementException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.example.backend.register.UserEntity;
 import com.example.backend.register.UserRepository;
+
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.RequestHeader;
 
 
@@ -40,7 +46,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> authenticateUser(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<TokenResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),
@@ -56,7 +62,8 @@ public class LoginController {
     public ResponseEntity<LoginDTO> getCurrentUser(@RequestHeader("Authorization") String tokenHeader) {
         String token = tokenHeader.replace("Bearer ", "");
         String email = jwtTokenProvider.getUsernameFromToken(token);
-        UserEntity user = userRepository.findByEmail(email);
+        UserEntity user = userRepository.findByEmail(email)
+                                            .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
         LoginDTO dto = new LoginDTO(user.getId(), user.getName(), user.getEmail());
         return ResponseEntity.ok(dto);
     }

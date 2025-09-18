@@ -38,6 +38,7 @@ const authStore = useAuthStore();
 
 const handleLogout = () => {
   authStore.logout();
+  alert('로그아웃 되셨습니다.');
   router.push('/');
 };
 
