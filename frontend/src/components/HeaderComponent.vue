@@ -1,3 +1,4 @@
+
 <template>
   <header class="main-header">
     <div class="content-wrapper">
