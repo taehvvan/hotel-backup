@@ -20,8 +20,11 @@ public class JwtTokenProvider {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expiration}")
-    private long jwtExpirationInMs;
+    @Value("${app.jwt.accessExpiration}")
+    private long accessTokenExpirationInMs;
+
+    @Value("${app.jwt.refreshExpiration}")
+    private long refreshTokenExpirationInMs;
 
     private Key key;
 
@@ -30,16 +33,13 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    // JWT 생성
-    public String createToken(Authentication authentication) {
-        String username = authentication.getName();
-        String role = authentication.getAuthorities().iterator().next().getAuthority();
-
+    // 액세스 토큰 생성
+    public String generateAccessToken(String email, String role) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        Date expiryDate = new Date(now.getTime() + accessTokenExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(email)
                 .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
@@ -47,23 +47,21 @@ public class JwtTokenProvider {
                 .compact();
     }
     
-    public String createToken(String email, String role) { //카카오 로그인 token
-        Claims claims = Jwts.claims().setSubject(email);
-        claims.put("role", role);
-
+    // 리프레시 토큰 생성
+    public String generateRefreshToken(String email) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        Date expiryDate = new Date(now.getTime() + refreshTokenExpirationInMs);
 
         return Jwts.builder()
-            .setClaims(claims)
-            .setIssuedAt(now)
-            .setExpiration(expiryDate)
-            .signWith(key, SignatureAlgorithm.HS512)
-            .compact();
+                .setSubject(email)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
     }
 
 
-    // JWT로 인증 정보 추출
+    // JWT에서 인증 정보 추출
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -80,6 +78,7 @@ public class JwtTokenProvider {
         return new UsernamePasswordAuthenticationToken(username, "", authorities);
     }
 
+    // JWT에서 이메일(사용자명) 추출
     public String getUsernameFromToken(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -100,7 +99,13 @@ public class JwtTokenProvider {
         }
     }
 
-    public Long getTokenExpirationInMilliSeconds() {
-        return jwtExpirationInMs;
+    // 액세스 토큰 만료 시간 조회
+    public Long getAccessTokenExpirationInMilliSeconds() {
+        return accessTokenExpirationInMs;
+    }
+
+    // 리프레시 토큰 만료 시간 조회
+    public Long getRefreshTokenExpirationInMilliSeconds() {
+        return refreshTokenExpirationInMs;
     }
 }

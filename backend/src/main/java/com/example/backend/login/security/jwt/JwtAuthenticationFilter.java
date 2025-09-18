@@ -11,17 +11,22 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
 
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+                                    throws ServletException, IOException {
+
+        System.out.println("JwtAuthenticationFilter 실행됨");
         String path = request.getRequestURI();
 
         // 로그인, 회원가입 요청은 JWT 검사하지 않음
@@ -30,22 +35,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 1. 요청 헤더에서 JWT 토큰 추출
-        String token = resolveToken(request);
+        try {
+            System.out.println("Request URI: " + request.getRequestURI());
+            System.out.println("Token: " + resolveToken(request));
+            // 요청 헤더에서 토큰 추출
+            String token = resolveToken(request);
 
-        // 2. 토큰 유효성 검증
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            // 3. 토큰이 유효하면 인증 객체(Authentication) 생성
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            // 4. SecurityContext에 인증 정보 저장
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                // 토큰이 유효하면 인증 객체 생성 후 SecurityContext에 저장
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            
+                System.out.println("Principal: " + authentication.getPrincipal());
+                System.out.println("Authorities: " + authentication.getAuthorities());
+            } else {
+                // 토큰 없거나 유효하지 않으면 401 반환
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or missing JWT token");
+                return;
+            }
+
+        } catch (Exception e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Failed to authenticate JWT token: " + e.getMessage());
+            return;
         }
 
         // 다음 필터로 진행
         filterChain.doFilter(request, response);
     }
 
-    // 요청 헤더에서 토큰을 추출하는 헬퍼 메서드
+    // 요청 헤더에서 Bearer 토큰 추출
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {

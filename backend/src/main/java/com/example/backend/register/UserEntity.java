@@ -48,6 +48,9 @@ public class UserEntity {
     @Column(name = "role", length = 50, nullable = false, columnDefinition = "varchar(50) default 'ROLE_USER'")
     private String role = "ROLE_USER";
 
+    @Column(name = "refresh_token")
+    private String refreshToken;
+
     public static UserEntity fromDto(UserDTO userDto) {
         return UserEntity.builder()
                 .name(userDto.getName())

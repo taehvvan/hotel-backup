@@ -10,10 +10,4 @@ const pinia = createPinia();
 
 app.use(pinia);
 app.use(router); // 2. 앱에 라우터를 사용하도록 등록합니다.
-
-router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore();
-  await authStore.checkLoginStatus(); // 페이지 이동 전에 로그인 상태 확인
-  next();
-});
 app.mount('#app')

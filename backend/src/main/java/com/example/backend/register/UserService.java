@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.backend.login.dto.TokenResponse;
+import com.example.backend.login.security.jwt.JwtTokenProvider;
+
 
 @Service
 public class UserService {
@@ -19,10 +22,11 @@ public class UserService {
     @Autowired
     private GoogleService googleService;
 
-    
-
     @Autowired
     private KakaoService kakaoService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     public boolean registerUser(UserDTO userDto) {
         try {
@@ -56,22 +60,37 @@ public class UserService {
             return userRepository.save(kakaoUser);
         }
     }
-    /* 
-    public UserEntity googleLoginOrRegister(String code) throws Exception {
-        String idToken = googleService.getAccessToken(code);
-        User googleUser = googleService.getUserInfo(idToken);
 
-        Optional<User> existingUser = userRepository.findByEmailAndSocial(googleUser.getEmail(), "google");
-        
-        if (existingUser.isPresent()) {
-            return existingUser.get();
-        } else {
+    public void saveRefreshToken(UserEntity user, String refreshToken) {
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+    }
+
+    // 리프레시 토큰으로 액세스 토큰 재발급
+    public TokenResponse refreshAccessToken(String refreshToken) {
+        UserEntity user = userRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+
+        // 새로운 액세스 토큰 생성
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole());
+        return new TokenResponse("Bearer", newAccessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationInMilliSeconds());
+    }
+    
+    public UserEntity findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+    
+    public UserEntity googleLoginOrRegister(String code) throws Exception {
+        String idToken = googleService.getIdToken(code);
+        UserEntity googleUser = googleService.getUserInfo(idToken);
+    
+        Optional<UserEntity> existingUser = userRepository.findByEmailAndSocial(googleUser.getEmail(), "google");
+    
+        return existingUser.orElseGet(() -> {
             googleUser.setPassword(null);
-            googleUser.setPasswordConfirm(null);
             googleUser.setSocial("google");
             return userRepository.save(googleUser);
-        }
+        });
     }
-*/
 }
 
