@@ -18,6 +18,7 @@ public class HotelDTO {
     private String info;
 
     private List<RoomDTO> rooms;
+    private List<ReviewDTO> reviews;
     private List<ServiceDTO> services; // <-- DTO로 변경
 
     private Double avgScore; // 평균 점수
