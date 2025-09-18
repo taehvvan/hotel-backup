@@ -42,30 +42,49 @@
 import { ref } from 'vue';
 import axios from 'axios'; // axios 라이브러리 추가
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
 const email = ref('');
 const password = ref('');
 const router = useRouter()
+const authStore = useAuthStore();
 
+// 이메일 로그인
 const handleEmailLogin = async () => {
+  //공백제거함.
+  const trimmedEmail = email.value.trim();
+  const trimmedPassword = password.value.trim();
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    alert('올바른 이메일 주소를 입력해주세요.');
+    return; // 함수 종료
+  }
+
+  // 3. 비밀번호 유효성 검사 (최소 8자, 영문, 숫자, 특수문자 포함)
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+  if (!passwordRegex.test(trimmedPassword)) {
+    alert('비밀번호는 최소 8자 이상이며, 영문, 숫자, 특수문자를 포함해야 합니다.');
+    return; // 함수 종료
+  }
+
   try {
     const response = await axios.post('http://localhost:8888/api/auth/login', {
-      email: email.value,
-      password: password.value
+      email: trimmedEmail,
+      password: trimmedPassword
     });
 
     const token = response.data.accessToken || response.data.token;
     localStorage.setItem('jwtToken', token);
+    
     console.log('로그인 성공, JWT:', token);
-    router.push('/'); 
+
+    // fetchUserInfo 호출
+    await authStore.fetchUserInfo(token); 
+
+
   } catch (error) {
-    if (error.response) {
-      console.error('로그인 실패:', error.response.data);
-      alert(`로그인 실패: ${JSON.stringify(error.response.data)}`);
-    } else {
-      console.error('요청 실패:', error);
-      alert('로그인 요청 실패. 네트워크 상태를 확인해주세요.');
-    }
+    console.error(error);
   }
 };
 
@@ -75,6 +94,7 @@ const handleKakaoLogin = () => {
 };
 const handleGoogleLogin = () => {
   alert('구글 로그인을 시도합니다.');
+  window.location.href = 'http://localhost:8888/api/google/login';
 };
 </script>
 

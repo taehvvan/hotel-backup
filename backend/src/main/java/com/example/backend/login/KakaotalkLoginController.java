@@ -2,6 +2,7 @@ package com.example.backend.login;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,14 +52,24 @@ public class KakaotalkLoginController {
         try {
             UserEntity user = userService.kakaoLoginOrRegister(code);
 
-            String jwt = jwtTokenProvider.createToken(user.getEmail(), user.getRole());
-            
-           // ResponseMessage res = new ResponseMessage(true, "카카오 로그인 및 회원가입 성공!");
-            return ResponseEntity.ok(new TokenResponse("Bearer", jwt, jwtTokenProvider.getTokenExpirationInMilliSeconds()));
+            // 액세스 토큰 + 리프레시 토큰 생성
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+            // DB에 리프레시 토큰 저장
+            userService.saveRefreshToken(user, refreshToken);
+
+            return ResponseEntity.ok(
+                    new TokenResponse(
+                            "Bearer",
+                            accessToken,
+                            refreshToken,
+                            jwtTokenProvider.getAccessTokenExpirationInMilliSeconds()
+                    )
+            );
         } catch (Exception e) {
             System.err.println("카카오 로그인 실패: " + e.getMessage());
-            // 에러 발생 시 ResponseEntity.status(500).body(null) 등으로 처리
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
