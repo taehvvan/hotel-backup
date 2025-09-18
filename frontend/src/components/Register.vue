@@ -32,7 +32,7 @@
             인증 확인
           </button>
         </div>
-        
+
         <div class="input-group">
           <input type="password" id="password" v-model="password" placeholder="비밀번호" required>
         </div>
@@ -41,6 +41,7 @@
         </div>
         
         <button type="submit" class="btn-register" :disabled="!isEmailVerified">회원가입</button>
+
       </form>
 
       <div class="extra-links">
@@ -78,11 +79,15 @@ import axios from 'axios';
 const router = useRouter();
 
 // --- 새로운 상태 변수들 ---
+
 const name = ref('');
 const email = ref('');
 const password = ref('');
 const passwordConfirm = ref('');
 const verificationCode = ref('');
+const phone = ref('');
+const birth = ref('');
+const social = ref('');
 
 const isEmailDuplicate = ref(true); // 이메일 중복 상태 (초기값: 중복)
 const isEmailVerified = ref(false); // 이메일 인증 완료 상태
@@ -98,6 +103,7 @@ const checkEmailDuplicate = async () => {
 
   if (!emailRegex.test(trimmedEmail)) {
     emailStatus.value = '올바른 이메일 주소를 입력해주세요.';
+
     return;
   }
 
@@ -209,6 +215,7 @@ const handleKakaoLogin = () => {
   alert('카카오 회원가입을 시도합니다.');
   window.location.href = 'http://localhost:8888/api/kakao/login';
 };
+
 const handleGoogleLogin = () => {
   alert('구글 회원가입을 시도합니다.');
   window.location.href = 'http://localhost:8888/api/google/login';
@@ -256,6 +263,7 @@ const handleGoogleLogin = () => {
 .input-group {
   margin-bottom: 15px;
 }
+
 .input-group input {
   width: 100%;
   padding: 14px 20px;
@@ -276,6 +284,7 @@ const handleGoogleLogin = () => {
   align-items: center;
   gap: 10px;
 }
+
 .email-check-group input,
 .verification-group input {
   flex-grow: 1;
@@ -311,7 +320,6 @@ const handleGoogleLogin = () => {
   text-align: left;
   color: #555;
 }
-
 .btn-register {
   width: 100%;
   padding: 14px;

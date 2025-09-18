@@ -12,7 +12,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     boolean existsByEmail(String email);
 
-    Optional<UserEntity> findByEmail(String email);
+    // 리프레시 토큰으로 사용자 조회
+    Optional<UserEntity> findByRefreshToken(String refreshToken);
 
-    
 }

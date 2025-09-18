@@ -280,7 +280,7 @@ const sendSearchRequest = async () => {
   };
 
   try {
-    const response = await fetch('/api/search', {
+    const response = await fetch('http://localhost:8888/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),

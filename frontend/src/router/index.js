@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import MainPage from '../components/MainPage.vue';
 import Login from '../components/Login.vue';
 import Register from '../components/Register.vue';
@@ -77,7 +78,7 @@ const routes = [
     path: '/manager',
     name: 'HotelManager',
     component: HotelManagerPage,
-    meta: { requiresAuth: true, requiresRole: 'manager' }
+    meta: { requiresAuth: true, requiresRole: 'MANAGER' }
   },
 
   // --- 사이트 관리자 전용 페이지 ---
@@ -85,13 +86,39 @@ const routes = [
     path: '/admin',
     name: 'AdminDashboard',
     component: AdminDashboardPage,
-    meta: { requiresAuth: true, requiresRole: 'admin' }
+    meta: { requiresAuth: true, requiresRole: 'ADMIN' }
   }
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+});
+
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
+
+  // 로그인 안 되어 있으면 localStorage에서 JWT 확인 후 fetchUserInfo
+  if (!authStore.isLoggedIn) {
+    const token = localStorage.getItem('jwtToken');
+    if (token) {
+      try {
+        await authStore.fetchUserInfo(token); // 상태 재설정
+      } catch (err) {
+        console.error('토큰 재검증 실패:', err);
+      }
+    }
+  }
+
+  // ROLE 기반 접근 제한
+  if (to.path.startsWith('/admin') && authStore.userRole !== 'ROLE_ADMIN') {
+    return next('/');
+  }
+  if (to.path.startsWith('/manager') && authStore.userRole !== 'ROLE_MANAGER') {
+    return next('/');
+  }
+
+  next();
 });
 
 

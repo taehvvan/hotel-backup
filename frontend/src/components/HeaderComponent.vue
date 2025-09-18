@@ -29,7 +29,6 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
@@ -41,10 +40,6 @@ const handleLogout = () => {
   alert('로그아웃 되셨습니다.');
   router.push('/');
 };
-
-onMounted(() => {
-  authStore.checkLoginStatus();
-});
 </script>
 
   
