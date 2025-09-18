@@ -1,6 +1,5 @@
 package com.example.backend.search;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,7 +16,6 @@ public class HotelSearchService {
 
     private final HotelRepository hotelRepository;
 
-    @Autowired
     public HotelSearchService(HotelRepository hotelRepository) {
         this.hotelRepository = hotelRepository;
     }

@@ -1,6 +1,5 @@
 package com.example.backend.search;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +15,6 @@ public class HotelSearchController {
 
     private final HotelSearchService hotelSearchService;
 
-    @Autowired
     public HotelSearchController(HotelSearchService hotelSearchService) {
         this.hotelSearchService = hotelSearchService;
     }
