@@ -112,7 +112,11 @@
             <router-link
               v-for="item in sortedResults"
               :key="item.hid"
-              :to="{ name: 'HotelDetail', params: { id: item.hid } }"
+              :to="{ 
+                name: 'HotelDetail', 
+                params: { id: item.hid }, 
+                query: $route.query   // 현재 검색 조건 그대로 전달
+              }"
               class="result-card"
             >
               <div class="result-card-inner">
@@ -409,7 +413,7 @@ body {
 .zero-btn.active {  font-weight: 700;  color: #007bff;  border-color: #007bff;}
 .rating-filter-card span { font-weight: 500;  color: #555;  flex: 1;  text-align: center; /* 중앙정렬 */}
 .price-range-slider { position: relative; height: 20px; margin-bottom: 15px; }
-.price-range-slider input[type=range] { position: absolute; width: 100%; -webkit-appearance: none; background: transparent; pointer-events: none; }
+.price-range-slider input[type=range] { position: absolute; width: 100%; background: transparent; pointer-events: none; }
 .price-range-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: all; width: 22px; height: 22px; border-radius: 50%; background: #007bff; border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.2); cursor: pointer; }
 .price-range-slider .slider-track { position: absolute; width: 100%; height: 6px; background-color: #E0E0E0; top: 7px; border-radius: 3px; }
 .price-display { display: flex; justify-content: space-between; color: #333; font-weight: 600; margin-top: 10px; font-size: 1rem; }
