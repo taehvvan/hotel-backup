@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import MainPage from '../components/MainPage.vue';
 import Login from '../components/Login.vue';
 import Register from '../components/Register.vue';
@@ -21,6 +22,8 @@ import HeritageDetailPage from '../components/HeritageDetailPage.vue';
 import RegisterSuccess from '../components/RegisterSuccess.vue';
 import ManagerRegisterPage from '../components/ManagerRegisterPage.vue';
 import ManagerLoginPage from '../components/ManagerLoginPage.vue'; // [추가] 호텔 매니저 로그인 페이지 import
+import KakaoCallback from '../components/KakaoCallback.vue'; // 추가 카카오톡 로그인 처리 부분
+import GoogleCallback from '../components/GoogleCallback.vue';
 
 const routes = [
   // --- 공용 페이지 ---
@@ -39,6 +42,8 @@ const routes = [
   { path: '/accommodations', name: 'AccommodationList', component: AccommodationListPage },
   { path: '/landmarks', name: 'LandmarkList', component: LandmarkListPage },
   { path: '/heritage', name: 'HeritageList', component: HeritageListPage },
+  { path: '/kakao/callback', name: 'kakaoCallback', component: KakaoCallback }, //카카오톡 컴포넌트
+  { path: '/google/callback', name: 'googleCallback', component: GoogleCallback }, //구글 로그인 컴포넌트
 
   // --- 일반 사용자 전용 페이지 (로그인 필요) ---
   { path: '/mypage', name: 'UserMypage', component: UserMypage, meta: { requiresAuth: true } },
@@ -73,7 +78,7 @@ const routes = [
     path: '/manager',
     name: 'HotelManager',
     component: HotelManagerPage,
-    meta: { requiresAuth: true, requiresRole: 'manager' }
+    meta: { requiresAuth: true, requiresRole: 'MANAGER' }
   },
 
   // --- 사이트 관리자 전용 페이지 ---
@@ -81,7 +86,7 @@ const routes = [
     path: '/admin',
     name: 'AdminDashboard',
     component: AdminDashboardPage,
-    meta: { requiresAuth: true, requiresRole: 'admin' }
+    meta: { requiresAuth: true, requiresRole: 'ADMIN' }
   }
 ];
 
@@ -90,6 +95,30 @@ const router = createRouter({
   routes
 });
 
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
 
+  // 로그인 안 되어 있으면 localStorage에서 JWT 확인 후 fetchUserInfo
+  if (!authStore.isLoggedIn) {
+    const token = localStorage.getItem('jwtToken');
+    if (token) {
+      try {
+        await authStore.fetchUserInfo(token); // 상태 재설정
+      } catch (err) {
+        console.error('토큰 재검증 실패:', err);
+      }
+    }
+  }
+
+  // ROLE 기반 접근 제한
+  if (to.path.startsWith('/admin') && authStore.userRole !== 'ROLE_ADMIN') {
+    return next('/');
+  }
+  if (to.path.startsWith('/manager') && authStore.userRole !== 'ROLE_MANAGER') {
+    return next('/');
+  }
+
+  next();
+});
 
 export default router;

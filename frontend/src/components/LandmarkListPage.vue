@@ -288,3 +288,4 @@ const sortLandmarks = () => {
   grid-column: 1 / -1; text-align: center; color: #777; padding: 40px 0;
 }
 </style>
+
