@@ -10,6 +10,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByEmailAndSocial(String email, String social);
 
+    Optional<UserEntity> findByEmail(String email);
+
     boolean existsByEmail(String email);
 
     // 리프레시 토큰으로 사용자 조회
