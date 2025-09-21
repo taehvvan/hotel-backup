@@ -34,13 +34,14 @@ public class JwtTokenProvider {
     }
 
     // 액세스 토큰 생성
-    public String generateAccessToken(String email, String role) {
+    public String generateAccessToken(String email, String role, Integer uId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpirationInMs);
 
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
+                .claim("u_id", uId)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(key, SignatureAlgorithm.HS512)
@@ -48,12 +49,13 @@ public class JwtTokenProvider {
     }
     
     // 리프레시 토큰 생성
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(String email, Integer uId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpirationInMs);
 
         return Jwts.builder()
                 .setSubject(email)
+                .claim("u_id", uId)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(key, SignatureAlgorithm.HS512)
@@ -89,6 +91,18 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    public Integer getUserIdFromToken(String token) {
+
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        // Assuming user ID is stored as "id" in the JWT payload
+        return claims.get("u_id", Integer.class);
+    
+    }
+
     // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
@@ -98,6 +112,8 @@ public class JwtTokenProvider {
             return false;
         }
     }
+
+
 
     // 액세스 토큰 만료 시간 조회
     public Long getAccessTokenExpirationInMilliSeconds() {
