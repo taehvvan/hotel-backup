@@ -29,7 +29,8 @@ public class WishlistService {
     private final HotelRepository hotelRepository;
     private final UserRepository userRepository;
 
-    public WishlistService(DibsRepository dibsRepository, HotelRepository hotelRepository, UserRepository userRepository) {
+    public WishlistService(DibsRepository dibsRepository, HotelRepository hotelRepository,
+            UserRepository userRepository) {
         this.dibsRepository = dibsRepository;
         this.hotelRepository = hotelRepository;
         this.userRepository = userRepository;
@@ -162,21 +163,22 @@ public class WishlistService {
 
         System.out.println("rooms: " + numberOfRooms + ", persons: " + numberOfPeople);
 
-
         return dibsList.stream()
                 .map(dibs -> {
                     Hotel hotel = dibs.getHotel();
-                    
+
                     // 필터링 조건을 만족하는 객실만 찾기
                     List<RoomDTO> roomDTOs = Optional.ofNullable(hotel.getRooms())
                             .orElseGet(ArrayList::new)
                             .stream()
                             .filter(room -> {
-                                boolean meetsPeople = (numberOfPeople == null || (room.getPeople() * numberOfRooms) >= numberOfPeople);
-                                
+                                boolean meetsPeople = (numberOfPeople == null
+                                        || (room.getPeople() * numberOfRooms) >= numberOfPeople);
+
                                 boolean meetsRooms = (numberOfRooms == null || (room.getCount() >= numberOfRooms));
-                                boolean meetsAvailability = (checkIn == null || checkOut == null) || isRoomAvailable(room, checkIn, checkOut, numberOfRooms);
-                                
+                                boolean meetsAvailability = (checkIn == null || checkOut == null)
+                                        || isRoomAvailable(room, checkIn, checkOut, numberOfRooms);
+
                                 return meetsPeople && meetsRooms && meetsAvailability;
                             })
                             .map(room -> {
@@ -191,10 +193,15 @@ public class WishlistService {
                                 rDto.setCheckoutTime(room.getCheckoutTime());
                                 rDto.setAvailabilities(
                                         room.getRoomAvailabilities().stream()
-                                                .filter(ra -> !(ra.getDate().isBefore(checkIn) || ra.getDate().isAfter(checkOut)))
-                                                .map(ra -> new RoomAvailabilityDTO(ra.getDate(), ra.getAvailableCount()))
-                                                .collect(Collectors.toList())
-                                );
+                                                .filter(ra -> {
+                                                    if (checkIn == null || checkOut == null)
+                                                        return true; // null이면 모두 포함
+                                                    LocalDate date = ra.getDate();
+                                                    return !(date.isBefore(checkIn) || date.isAfter(checkOut));
+                                                })
+                                                .map(ra -> new RoomAvailabilityDTO(ra.getDate(),
+                                                        ra.getAvailableCount()))
+                                                .collect(Collectors.toList()));
                                 return rDto;
                             })
                             .collect(Collectors.toList());
@@ -241,21 +248,22 @@ public class WishlistService {
             if (availability.isPresent()) {
                 if (availability.get().getAvailableCount() < numberOfRooms) {
                     // 특정 날짜에 요청한 방 수보다 가용 방 수가 적으면 false
-                    return false; 
+                    return false;
                 }
             }
             // 3. 데이터가 존재하지 않으면, 모든 방이 예약 가능하다고 간주하므로 이 조건은 통과
-            
+
             currentDate = currentDate.plusDays(1);
         }
-        
+
         return true; // 모든 날짜의 조건을 통과하면 true
     }
 
     // 리뷰 평균/개수를 위한 헬퍼 메서드 추가
     private double getAverageScore(Hotel hotel) {
         List<Review> reviews = Optional.ofNullable(hotel.getReviews()).orElseGet(ArrayList::new);
-        if (reviews.isEmpty()) return 0.0;
+        if (reviews.isEmpty())
+            return 0.0;
         return reviews.stream().mapToInt(Review::getScore).average().orElse(0.0);
     }
 
