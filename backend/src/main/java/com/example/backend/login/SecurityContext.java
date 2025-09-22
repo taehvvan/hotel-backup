@@ -49,7 +49,9 @@ public class SecurityContext {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:8888"));
+        configuration.setAllowedOrigins(
+                Arrays.asList("http://localhost:5173", "http://localhost:8888", "http://172.16.15.93:5173",
+                        "http://172.16.15.95:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         configuration.setAllowCredentials(true);
@@ -65,47 +67,48 @@ public class SecurityContext {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+            JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .httpBasic(httpBasic -> httpBasic.disable())
-            .formLogin(formLogin -> formLogin.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(
-                        "/api/auth/login",
-                        "/api/register",
-                        "/api/kakao/login",      // 카카오 로그인 시작 URL
-                        "/api/kakao/callback",   // 카카오 콜백 URL
-                        //"/api/auth/social/kakao/callback",
-                        "/api/send-code",
-                        "/api/verify-code",
-                        "/api/check-email",
-                        "/api/detail",                            
-                        "/api/google/login",
-                        "/api/google/callback",
-                        "/", "/api/search",
-                        "/api/reservations/**",
-                        "/api/payments/**",
-                        "/payment-success",
-                        "/payment-fail",
-                        "/payment-callback",
-                        "/hotel/**", "/landmark/**", "/heritage/**",
-                        "/terms", "/privacy",
-                        "/accommodations", "/landmarks", "/heritage",
-                        "/checkout-guest",
-                        "/images/**", "/css/**", "/js/**", "/error"
-                ).permitAll()
-                .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
-                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist", "/mypage/**").hasRole("USER")
-                .requestMatchers("/api/manager/**").hasRole("MANAGER")
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            )
-            // ✅ Bean으로 등록된 필터 인스턴스를 사용
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(formLogin -> formLogin.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/register",
+                                "/api/kakao/login", // 카카오 로그인 시작 URL
+                                "/api/kakao/callback", // 카카오 콜백 URL
+                                // "/api/auth/social/kakao/callback",
+                                "/api/send-code",
+                                "/api/verify-code",
+                                "/api/check-email",
+                                "/api/detail",
+                                "/api/google/login",
+                                "/api/google/callback",
+                                "/", "/api/search",
+                                "/api/reservations/**",
+                                "/api/payments/**",
+                                "/payment-success",
+                                "/payment-fail",
+                                "/payment-callback",
+                                "/hotel/**", "/landmark/**", "/heritage/**",
+                                "/terms", "/privacy",
+                                "/accommodations", "/landmarks", "/heritage",
+                                "/checkout-guest",
+                                "/images/**", "/css/**", "/js/**", "/error")
+                        .permitAll()
+                        .requestMatchers("/api/auth/me").hasAnyRole("USER", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist", "/api/wishlist/**",
+                                "/mypage/**")
+                        .hasRole("USER")
+                        .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                // ✅ Bean으로 등록된 필터 인스턴스를 사용
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
