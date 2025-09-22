@@ -284,7 +284,7 @@ const sendDetailSearchRequest = async () => {
   console.log('sending hId:', requestBody.hId);
 
   try {
-    const response = await fetch('/api/detail', {
+    const response = await fetch('http://localhost:8888/api/detail', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
