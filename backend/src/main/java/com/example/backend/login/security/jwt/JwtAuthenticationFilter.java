@@ -30,7 +30,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // 로그인, 회원가입 요청은 JWT 검사하지 않음
-        if (path.startsWith("/api/auth/login") || path.startsWith("/api/register")) {
+        if (path.startsWith("/api/auth/login") || path.startsWith("/api/register") ||
+            path.startsWith("/api/send-code") || path.startsWith("/api/verify-code") || 
+            path.startsWith("/api/check-email") || path.startsWith("/api/search") || 
+            path.startsWith("/api/detail")) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -76,7 +76,7 @@ public class UserService {
         return new TokenResponse("Bearer", newAccessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationInMilliSeconds());
     }
     
-    public UserEntity findByEmail(String email) {
+    public Optional<UserEntity> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
     
