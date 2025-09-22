@@ -53,8 +53,8 @@ public class KakaotalkLoginController {
             UserEntity user = userService.kakaoLoginOrRegister(code);
 
             // 액세스 토큰 + 리프레시 토큰 생성
-            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail(), user.getId());
 
             // DB에 리프레시 토큰 저장
             userService.saveRefreshToken(user, refreshToken);

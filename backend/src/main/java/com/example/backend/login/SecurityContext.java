@@ -1,5 +1,6 @@
 package com.example.backend.login;
 
+import com.example.backend.login.security.PrincipalDetailsService;
 import com.example.backend.login.security.jwt.JwtAuthenticationFilter;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
@@ -25,10 +26,13 @@ import java.util.Collections;
 @EnableWebSecurity
 public class SecurityContext {
 
+    private final PrincipalDetailsService principalDetailsService;
+
     private final JwtTokenProvider jwtTokenProvider;
 
-    public SecurityContext(JwtTokenProvider jwtTokenProvider) {
+    public SecurityContext(JwtTokenProvider jwtTokenProvider, PrincipalDetailsService principalDetailsService) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.principalDetailsService = principalDetailsService;
     }
 
     @Bean
@@ -56,7 +60,7 @@ public class SecurityContext {
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtTokenProvider);
+        return new JwtAuthenticationFilter(jwtTokenProvider, principalDetailsService);
     }
 
     @Bean
@@ -83,6 +87,11 @@ public class SecurityContext {
                         "/api/google/login",
                         "/api/google/callback",
                         "/", "/api/search",
+                        "/api/reservations/**",
+                        "/api/payments/**",
+                        "/payment-success",
+                        "/payment-fail",
+                        "/payment-callback",
                         "/hotel/**", "/landmark/**", "/heritage/**",
                         "/terms", "/privacy",
                         "/accommodations", "/landmarks", "/heritage",
@@ -90,7 +99,7 @@ public class SecurityContext {
                         "/images/**", "/css/**", "/js/**", "/error"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
-                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist").hasRole("USER")
+                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist", "/mypage/**").hasRole("USER")
                 .requestMatchers("/api/manager/**").hasRole("MANAGER")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

@@ -68,8 +68,8 @@ public class LoginController {
         UserEntity user = userRepository.findByEmail(loginRequest.getEmail()).orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(),
-                user.getRole());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+                user.getRole(), user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail(), user.getId());
 
         userService.saveRefreshToken(user, refreshToken);
 
@@ -105,7 +105,7 @@ public class LoginController {
         }
 
         // 새로운 액세스 토큰 생성
-        String newAccessToken = jwtTokenProvider.generateAccessToken(email, user.getRole());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(email, user.getRole(), user.getId());
 
         // TokenResponse 객체 생성
         TokenResponse tokenResponse = new TokenResponse(

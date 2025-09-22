@@ -49,33 +49,31 @@
                 <h4>예약 내역</h4>
                 <span class="header-line"></span>
               </div>
-              <div v-if="reservations.length > 0" class="reservation-list">
-                <div v-for="reservation in reservations" :key="reservation.id" class="reservation-card">
+              <!-- 2. 예약 내역이 없을 때 보여줄 UI -->
+              <div v-if="reservations.length === 0" class="empty-state">
+                <p>아직 예약 내역이 없습니다. 새로운 쉼을 찾아 떠나보세요! ✨</p>
+              </div>
+
+              <!-- 3. 예약 내역이 있을 때 UI -->
+              <div v-else class="reservation-list">
+                <div v-for="reservation in reservations" :key="reservation.reservationId" class="reservation-card">
                   <div class="card-image">
-                    <img :src="reservation.image" :alt="reservation.placeName">
+                    <img :src="reservation.hotelImage || 'https://placehold.co/300x200?text=Hotel'" :alt="reservation.hotelName">
                   </div>
                   <div class="card-info">
-                    <h5 class="place-name">{{ reservation.placeName }}</h5>
+                    <h5 class="place-name">{{ reservation.hotelName }} - {{ reservation.roomType }}</h5>
                     <p class="reservation-details">
                       <span><strong>체크인:</strong> {{ reservation.checkIn }}</span>
                       <span><strong>체크아웃:</strong> {{ reservation.checkOut }}</span>
-                      <span><strong>인원:</strong> {{ reservation.guests }}</span>
+                      <span><strong>인원:</strong> 성인 {{ reservation.people }}명</span>
+                      <span><strong>결제 금액:</strong> {{ reservation.price.toLocaleString() }}원</span>
                     </p>
                     <div class="reservation-actions">
-                      <p class="status-badge" :class="reservation.status">{{ reservation.statusText }}</p>
-                      <button 
-                        v-if="reservation.status === 'completed'" 
-                        @click="writeReview(reservation.id)"
-                        class="btn-review-write"
-                      >
-                        후기 작성
-                      </button>
+                      <p class="status-badge">{{ reservation.status }}</p>
+                      <button class="btn-review-write">후기 작성</button>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div v-else class="empty-state">
-                <p>아직 예약 내역이 없습니다. 새로운 쉼을 찾아 떠나보세요! ✨</p>
               </div>
             </div>
   
@@ -196,7 +194,10 @@
   </template>
   
   <script setup>
-  import { ref, reactive } from 'vue';
+  import { ref, reactive, onMounted } from 'vue';
+  import axios from 'axios';
+// import { useRouter } from 'vue-router'; // 필요 시 라우터 사용
+
   
   const activeTab = ref('reservations');
   
@@ -205,18 +206,51 @@
     email: 'minjun.kim@example.com',
     profileImage: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=1974&auto=format&fit=crop',
   });
+
+  const reservations = ref([]); // 원본 API 데이터를 저장할 ref
+
+  // 백엔드 API에서 예약 내역을 가져오는 함수
+  const fetchReservations = async () => {
+    try {
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        router.push('/login');
+        return;
+      }
+
+      // [디버깅 1] 어떤 토큰으로 요청하는지 확인
+      console.log("[FRONTEND] 이 토큰으로 예약 내역을 요청합니다:", token);
+
+      // 백엔드에 예약 내역 조회 API 요청
+      const response = await axios.get('http://localhost:8888/mypage/reservations', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // [디버깅 2] 서버로부터 받은 실제 데이터 확인
+      console.log("[FRONTEND] 서버로부터 받은 응답 데이터:", response.data);
+
+      // 성공적으로 데이터를 받으면 ref에 저장
+      reservations.value = response.data;
+      console.log("서버로부터 받은 예약 내역:", response.data);
+
+    } catch (error) {
+      console.error('예약 내역을 불러오는 데 실패했습니다:', error);
+      if (error.response?.status === 401) {
+          alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+          // router.push('/login');
+      }
+    } finally {
+    }
+  };
   
   const editInfo = reactive({
     name: userInfo.name,
     phone: '010-1234-5678',
     newPassword: '',
   });
-  
-  const reservations = ref([
-    { id: 1, placeName: '경주 한옥마을 스테이', image: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', checkIn: '2025.09.20', checkOut: '2025.09.22', guests: '성인 2명', status: 'completed', statusText: '이용 완료' },
-    { id: 2, placeName: '설악산 펜션', image: 'https://images.unsplash.com/photo-1559810842-7041a99f18c2?q=80&w=1969&auto=format&fit=crop', checkIn: '2025.10.15', checkOut: '2025.10.18', guests: '성인 4명', status: 'upcoming', statusText: '예약 완료' },
-    { id: 3, placeName: '제주 돌담집', image: 'https://images.unsplash.com/photo-1518780722-e4210a562f6b?q=80&w=1974&auto=format&fit=crop', checkIn: '2025.08.01', checkOut: '2025.08.05', guests: '성인 2명, 어린이 1명', status: 'cancelled', statusText: '취소됨' },
-  ]);
   
   const likedItems = ref([
     { id: 101, name: '남산 한옥마을', location: '서울 중구', price: 250000, image: 'https://images.unsplash.com/photo-1616763327685-613d9406004b?q=80&w=2070&auto=format&fit=crop'},
@@ -279,6 +313,11 @@
       isEmailVerified.value = false;
     }
   };
+
+  // 컴포넌트가 화면에 마운트될 때 예약 내역을 자동으로 불러옵니다.
+onMounted(() => {
+  fetchReservations();
+});
   </script>
   
   <style scoped>
