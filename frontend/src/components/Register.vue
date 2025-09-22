@@ -108,7 +108,7 @@ const checkEmailDuplicate = async () => {
   }
 
   try {
-    const response = await axios.post('http://localhost:8888/api/check-email', { email: trimmedEmail });
+    const response = await axios.post('/api/check-email', { email: trimmedEmail });
     isEmailDuplicate.value = response.data.isDuplicate;
 
     if (response.data.isDuplicate) {
@@ -123,7 +123,7 @@ const checkEmailDuplicate = async () => {
 
 const sendVerificationCode = async () => {
   try {
-    await axios.post('http://localhost:8888/api/send-code', { email: email.value.trim() });
+    await axios.post('/api/send-code', { email: email.value.trim() });
     codeSent.value = true;
     verificationStatus.value = '인증번호가 전송되었습니다. 3분 이내에 입력해주세요.';
   } catch (error) {
@@ -133,7 +133,7 @@ const sendVerificationCode = async () => {
 
 const verifyCode = async () => {
   try {
-    const response = await axios.post('http://localhost:8888/api/verify-code', {
+    const response = await axios.post('/api/verify-code', {
       email: email.value.trim(),
       code: verificationCode.value.trim()
     });
@@ -196,7 +196,7 @@ const handleRegister = async () => {
     };
 
     // 백엔드에 요청 보내기
-    const response = await axios.post('http://localhost:8888/api/register', data);
+    const response = await axios.post('/api/register', data);
 
     // 성공시 처리
     if (response.data.success) {
@@ -213,12 +213,12 @@ const handleRegister = async () => {
 
 const handleKakaoLogin = () => {
   alert('카카오 회원가입을 시도합니다.');
-  window.location.href = 'http://localhost:8888/api/kakao/login';
+  window.location.href = '/api/kakao/login';
 };
 
 const handleGoogleLogin = () => {
   alert('구글 회원가입을 시도합니다.');
-  window.location.href = 'http://localhost:8888/api/google/login';
+  window.location.href = '/api/google/login';
 };
 </script>
 

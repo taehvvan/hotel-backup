@@ -330,7 +330,7 @@ const sendSearchRequest = async () => {
   };
 
   try {
-    const response = await fetch('http://localhost:8888/api/search', {
+    const response = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -418,7 +418,7 @@ const addToWishlist = async (hid) => {
     if (!token) throw new Error("JWT 토큰이 없습니다.");
 
     const response = await axios.post(
-      `http://localhost:8888/api/wishlist/${hid}`,
+      `/api/wishlist/${hid}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -437,7 +437,7 @@ const removeFromWishlist = async (hid) => {
     const token = localStorage.getItem("jwtToken");
     if (!token) throw new Error("JWT 토큰이 없습니다.");
 
-    await axios.delete(`http://localhost:8888/api/wishlist/${hid}`, {
+    await axios.delete(`/api/wishlist/${hid}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -468,7 +468,8 @@ onMounted(async () => {
 
   try {
     const token = localStorage.getItem("jwtToken");
-    const response = await axios.get('http://localhost:8888/api/wishlist', {
+    console.log("Token : ", token);
+    const response = await axios.get('/api/wishlist', {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -479,7 +480,10 @@ onMounted(async () => {
       ...item
     }));
   } catch (error) {
+    const token = localStorage.getItem("jwtToken");
+    console.log("Token : ", token);
     console.error("찜 목록 불러오기 실패", error);
+    
   }
 });
 

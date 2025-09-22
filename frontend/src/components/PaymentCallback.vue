@@ -47,7 +47,7 @@ onMounted(async () => {
 
     localStorage.setItem('accessToken', token);
 
-    await axios.post('http://localhost:8888/api/payments/complete', {
+    await axios.post('/api/payments/complete', {
       reservationId,
       roomId,
       hotelId,

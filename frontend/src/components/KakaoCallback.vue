@@ -20,7 +20,7 @@ onMounted(async () => {
 
   if (code) {
     try {
-      const response = await axios.get(`http://localhost:8888/api/kakao/callback?code=${code}`);
+      const response = await axios.get(`/api/kakao/callback?code=${code}`);
       const token = response.data.accessToken;
 
       // --- 이 부분이 핵심입니다 ---

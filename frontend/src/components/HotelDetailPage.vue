@@ -111,7 +111,7 @@
               <div class="room-booking">
                 <strong class="room-price">{{ room.price.toLocaleString() }}원</strong>
                 <span>세금 및 봉사료 포함</span>
-                <button class="btn-book" @click="goToCheckout(room)">예약하기</button>
+                <button class="btn-book">예약하기</button>
               </div>
             </div>
           </div>
@@ -216,32 +216,20 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router'
-import { useBookingStore } from '@/stores/booking'
-import { useUserStore } from '@/stores/user'
-import { useAuthStore } from '@/stores/auth'
-import axios from 'axios'
+import { useRoute } from 'vue-router';
 
-const route = useRoute()
-const router = useRouter()
-const bookingStore = useBookingStore()
-const userStore = useUserStore()
-const authStore = useAuthStore();
+const route = useRoute();
 
 const isStickyNavVisible = ref(false);
 const stickyNavBarRef = ref(null);
 
-const search = bookingStore.search;
-let hotel = bookingStore.hotel;
-const room = bookingStore.room;
-
-const uId = userStore.user?.id || null;
-
 const hId = ref(route.params.hId);
-const checkIn = ref(bookingStore.search.checkIn || ''); // null일 경우 빈 문자열로 설정
-    const checkOut = ref(bookingStore.search.checkOut || ''); // null일 경우 빈 문자열로 설정
-    const rooms = ref(bookingStore.search.rooms || 1); // 기본값: 1
-    const persons = ref(bookingStore.search.persons || 2);
+const checkIn = ref(null);
+const checkOut = ref(null);
+const rooms = ref(1);
+const persons = ref(2);
+
+const hotel = ref(null);
 
 const getRatingText = (rating) => {
   if (rating >= 4.5) return '최고에요';
@@ -296,7 +284,7 @@ const sendDetailSearchRequest = async () => {
   console.log('sending hId:', requestBody.hId);
 
   try {
-    const response = await fetch('http://localhost:8888/api/detail', {
+    const response = await fetch('/api/detail', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -304,9 +292,8 @@ const sendDetailSearchRequest = async () => {
 
     if (response.ok) {
       // 서버 응답이 성공(200 OK)일 경우
-      hotel = await response.json(); // 응답 본문을 JSON으로 파싱하여 hotel 변수에 저장
-      bookingStore.hotel = hotel;
-      console.log('데이터 로드 성공:', hotel);
+      hotel.value = await response.json(); // 응답 본문을 JSON으로 파싱하여 hotel 변수에 저장
+      console.log('데이터 로드 성공:', hotel.value);
     } else {
       console.error('디테일 검색 실패:', response.status);
       // 에러 처리 로직
@@ -403,95 +390,17 @@ watch(hotel, async (newVal) => {
   }
 });
 
-// 예약하기 버튼 클릭 시 실행
-const goToCheckout = async (room) => {
-  try {
-    bookingStore.setBooking(search, hotel, room);
-
-    console.log("=============================================");
-    console.log("🚀 '예약하기' 버튼 클릭 시점의 상태를 확인합니다.");
-    console.log("=============================================");
-    
-    // 1. authStore의 전체 상태를 확인합니다.
-    console.log("1. authStore 전체 상태:", JSON.stringify(authStore.$state, null, 2));
-    
-    // 2. authStore.user 객체를 직접 확인합니다.
-    const currentUser = authStore.user;
-    console.log("2. authStore.user 객체:", currentUser);
-
-    // 3. uId를 추출해봅니다. (UserEntity의 ID 필드명이 'uId'라고 가정)
-    const userId = currentUser?.id;
-    console.log("3. 추출 시도한 uId 값:", userId);
-    
-    if (userId === undefined) {
-      console.error("🔥 치명적 오류: 'uId' 필드를 찾을 수 없습니다! UserEntity에 'uId' 필드가 있는지, 대소문자가 맞는지 확인하세요. (혹시 'id' 인가요?)");
-    } else if (userId === null) {
-      console.warn("🤔 uId가 null 입니다. 비회원 예약으로 진행됩니다.");
-    } else {
-      console.log("✅ 성공: uId 값이 정상적으로 확인되었습니다:", userId);
-    }
-
-    // 비회원일 경우, 또는 로그인 정보가 아직 로드되지 않은 경우
-    if (!userStore.user?.id) {
-        console.warn("로그인 정보 없이 예약을 진행합니다 (비회원 예약).");
-        // 여기서 비회원 예약이 맞는지 사용자에게 한번 더 확인시켜주는 로직을 넣어도 좋습니다.
-    }
-
-    const formatDate = (date) => {
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    // 1. [예약 생성 요청]을 위한 데이터 준비
-    const reservationData = {
-      rId: room.rid,
-      uId: userId || null,
-      checkin: formatDate(checkIn.value),
-      checkout: formatDate(checkOut.value),
-      people: persons.value,
-      price: room.price * rooms.value,
-    };
-
-    console.log('예약 데이터:', reservationData);
-
-    // 1. 예약 생성 요청
-    const reservationResponse = await axios.post('http://localhost:8888/api/reservations', reservationData, {
-      headers: {
-        // 로그인된 사용자의 경우 토큰을 함께 보냅니다.
-        Authorization: `Bearer ${localStorage.getItem('jwtToken')}`, // 'accessToken' 대신 'jwtToken' 사용
-      },
-    });
-
-    const reId = reservationResponse.data.reId;
-    if (!reId) {
-        throw new Error("서버로부터 예약 ID를 받지 못했습니다.");
-    }
-
-    console.log('생성된 예약 ID:', reId);
-
-    // 3. Pinia 스토어에 예약 ID를 저장합니다.
-    // 이렇게 하면 다음 페이지(/checkout)에서 이 ID를 사용할 수 있습니다.
-    bookingStore.setReservationId(reId);
-
-    // 결제 후 체크아웃 페이지로 이동
-    router.push('/checkout');
- 
-
-  } catch (error) {
-    console.error('예약 생성 중 오류 발생:', error);
-    if (error.response) {
-      console.error('서버 응답 데이터:', error.response.data);
-      alert(`예약 생성에 실패했습니다: ${error.response.data.message || '서버 오류'}`);
-    } else {
-      alert('예약 생성에 실패했습니다. 네트워크 연결을 확인해주세요.');
-    }
+onMounted(() => {
+  if (hotel.value) {
+    window.addEventListener('scroll', handleScroll);
   }
-};
+});
 
-
+watch(hotel, (newVal) => {
+  if (newVal) {
+    window.addEventListener('scroll', handleScroll);
+  }
+});
 
 watch(
   () => route.query,
@@ -501,7 +410,6 @@ watch(
   },
   { immediate: true, deep: true }
 );
-
 
 
 </script>

@@ -223,7 +223,7 @@
       console.log("[FRONTEND] 이 토큰으로 예약 내역을 요청합니다:", token);
 
       // 백엔드에 예약 내역 조회 API 요청
-      const response = await axios.get('http://localhost:8888/mypage/reservations', {
+      const response = await axios.get('/mypage/reservations', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
