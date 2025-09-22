@@ -13,20 +13,20 @@
             <div class="room-summary-card">
               <img :src="roomImage" :alt="roomName" class="selected-room-image">
               <div class="room-details-wrapper">
-                <h3>{{ roomName }}</h3>
-                <p class="hotel-name-small">{{ hotelName }}</p>
+                <h3>{{ bookingStore.room?.type }}</h3>
+                <p class="hotel-name-small">{{ bookingStore.hotel?.hname }}</p>
                 <p class="location">📍 {{ location }}</p>
               </div>
             </div>
             <div class="date-picker">
               <div class="date-item">
                 <label>체크인</label>
-                <strong>{{ checkIn }}</strong>
+                <strong>{{ bookingStore.search.startDate ? new Date(bookingStore.search.startDate).toLocaleDateString() : '' }}</strong>
               </div>
-              <div class="nights">→ 1박 →</div>
+
               <div class="date-item">
                 <label>체크아웃</label>
-                <strong>{{ checkOut }}</strong>
+                <strong>{{ bookingStore.search.endDate ? new Date(bookingStore.search.endDate).toLocaleDateString() : '' }}</strong>
               </div>
             </div>
           </section>
@@ -51,12 +51,23 @@
           </section>
   
           <section class="checkout-section sms-dispatch-section">
-            <h2>예약 문자 발송</h2>
+            <h2>예약 정보</h2>
             <div class="sms-box">
               <label for="phone-number">휴대폰 번호</label>
-              <input type="tel" id="phone-number" placeholder="예약 확인을 위해 휴대폰 번호를 입력해주세요" v-model="phoneNumber">
-              <p class="sms-guidance">입력하신 번호로 예약 정보가 발송됩니다.</p>
-              <button class="btn-send-sms" @click="sendReservationSMS">예약 문자 발송</button>
+              <input
+                type="tel"
+                id="phone-number"
+                placeholder="휴대폰 번호를 입력해주세요"
+                v-model="phoneNumber"
+              />
+
+              <!-- 체크박스 + 안내문구 한 줄 -->
+              <div class="save-phone-row">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="savePhoneNumber" />
+                  전화번호 저장하기
+                </label>
+              </div>
             </div>
           </section>
         </div>
@@ -66,8 +77,8 @@
             <div class="order-summary-header">
               <img :src="image" :alt="hotelName">
               <div class="hotel-info">
-                <h3>{{ hotelName }}</h3>
-                <p class="room-name-on-card">{{ roomName }}</p>
+                <h3>{{ bookingStore.hotel?.name }}</h3>
+                <p class="room-name-on-card">{{ bookingStore.room?.type }}</p>
                 <div class="rating-info">
                   <span class="score">{{ rating }}</span>
                   <span>아주 좋아요</span>
@@ -81,7 +92,7 @@
             <div class="price-details">
               <div class="price-row">
                 <span>기본 요금</span>
-                <span>₩{{ (basePrice).toLocaleString() }}</span>
+                <span> ₩ {{ basePrice.toLocaleString() }} </span>
               </div>
               <div class="price-row highlight" v-if="couponDiscount > 0">
                 <span>쿠폰 할인</span>
@@ -89,12 +100,12 @@
               </div>
               <div class="price-row">
                 <span>세금 및 수수료</span>
-                <span>₩{{ (taxes).toLocaleString() }}</span>
+                <span> ₩ {{ taxes }}</span>
               </div>
               <hr class="total-divider">
               <div class="price-row total">
                 <strong>총 결제 금액</strong>
-                <strong>₩{{ (finalPrice).toLocaleString() }}</strong>
+                <strong>₩ {{ finalPrice.toLocaleString() }}</strong>
               </div>
             </div>
             <button class="btn-payment" @click="handlePayment">결제하기</button>
@@ -113,41 +124,59 @@
   
   <script setup>
   import { ref, onMounted, computed } from 'vue';
+  import { watch } from 'vue';
   import { useRouter } from 'vue-router';
   import CouponModal from './CouponModal.vue';
+  import { useBookingStore } from '@/stores/booking'
+  import { watchEffect } from 'vue'
   
   const router = useRouter();
-  
-  const props = defineProps({
-    hotelName: { type: String, default: 'CVK Park Bosphorus 호텔' },
-    roomName: { type: String, default: 'Superior room - 1 더블베드 or 2 트윈 베드' },
-    basePrice: { type: Number, default: 240000 },
-    image: { type: String, default: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' },
-    roomImage: { type: String, default: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' },
-    rating: { type: Number, default: 4.2 },
-    reviews: { type: Number, default: 56 },
-    checkIn: { type: String, default: '9월 12일, 목요일' },
-    checkOut: { type: String, default: '9월 13일, 금요일' },
-    location: { type: String, default: 'Gümusuyu Mah. İnönü Cad. No:8, İstanbul 34437' },
-    taxes: { type: Number, default: 24000 }
-  });
+
+  const bookingStore = useBookingStore()
+
+  console.log('검색 조건:', bookingStore.search)
+  console.log('호텔 정보:', bookingStore.hotel)
+  console.log('선택 객실:', bookingStore.room)
   
   const phoneNumber = ref('');
+  const savePhoneNumber = ref(false);
+
+  // 체크박스 상태 변경 시 localStorage 처리
+  watch([savePhoneNumber, phoneNumber], ([saveChecked, number]) => {
+    if (saveChecked && number) {
+      localStorage.setItem('savedPhoneNumber', number)
+    } else {
+      localStorage.removeItem('savedPhoneNumber')
+    }
+  })
+
+  // 페이지 로드 시 localStorage에서 기존 번호 불러오기
+  onMounted(() => {
+    const savedNumber = localStorage.getItem('savedPhoneNumber')
+    if (savedNumber) {
+      phoneNumber.value = savedNumber
+      savePhoneNumber.value = true
+    }
+  })
+
   const isCouponModalVisible = ref(false);
   const selectedCoupon = ref(null);
   const availableCoupons = ref([]);
+  const taxes = ref(5000);
+
+  // 객실 가격 가져오기
+  const basePrice = computed(() => bookingStore.room?.price || 0)
   
+  // 쿠폰 할인 계산
   const couponDiscount = computed(() => {
-    if (!selectedCoupon.value) return 0;
+    if (!selectedCoupon.value) return 0
     if (selectedCoupon.value.type === 'percent') {
-      return Math.floor(props.basePrice * (selectedCoupon.value.discount / 100));
+      return Math.floor(basePrice.value * (selectedCoupon.value.discount / 100))
     }
-    return selectedCoupon.value.discount || 0;
-  });
+    return selectedCoupon.value.discount || 0
+  })
   
-  const finalPrice = computed(() => {
-    return props.basePrice - couponDiscount.value + props.taxes;
-  });
+  const finalPrice = computed(() => basePrice.value - couponDiscount.value + taxes.value)
   
   const tossPayments = ref(null);
   const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
@@ -185,43 +214,36 @@
     return '';
   };
   
-  // [추가] 예약 문자 발송 함수 복구
-  const sendReservationSMS = () => {
-    if (!phoneNumber.value) {
-      alert('휴대폰 번호를 입력해주세요.');
-      return;
-    }
-    alert(`"${phoneNumber.value}" 번호로 예약 문자가 발송될 예정입니다. (기능 미구현)`);
-  };
-  
   const handlePayment = async () => {
-    if (!tossPayments.value) {
-      alert("결제 모듈이 준비되지 않았습니다.");
-      return;
-    }
-    if (!phoneNumber.value) {
-      alert('예약 문자 발송을 위해 휴대폰 번호를 먼저 입력해주세요.');
-      return;
-    }
-    const orderId = 'room-reservation-' + new Date().getTime();
-    
-    try {
-      await tossPayments.value.requestPayment('card', {
-        amount: finalPrice.value,
-        orderId: orderId,
-        orderName: `${props.hotelName} - ${props.roomName}`,
-        customerName: '엘리디아 사용자',
-        customerMobilePhone: phoneNumber.value.replaceAll('-', ''),
-        successUrl: `${window.location.origin}/payment/success`,
-        failUrl: `${window.location.origin}/payment/fail`,
-      });
-    } catch (error) {
-      console.error("결제 요청 실패:", error);
-      if (error.code !== 'USER_CANCEL') {
-        alert(`결제에 실패했습니다: ${error.message}`);
-      }
-    }
-  };
+  if (!tossPayments.value) return alert('결제 모듈이 준비되지 않았습니다.');
+
+  const room = bookingStore.room;
+  const hotel = bookingStore.hotel;
+  const search = bookingStore.search;
+  const reservationId = bookingStore.reservationId;
+
+  if (!room || !hotel || !search) {
+    return alert('예약 정보가 올바르지 않습니다.');
+  }
+
+  // localStorage에 최소한의 정보 저장
+  localStorage.setItem('reservationId', reservationId);
+  localStorage.setItem('roomId', bookingStore.room.rid);
+  localStorage.setItem('hotelId', bookingStore.hotel.hid);
+
+  const orderId = `room-reservation-${Date.now()}`;
+  const amount = finalPrice.value;
+
+  await tossPayments.value.requestPayment('card', {
+    amount,
+    orderId,
+    orderName: `${bookingStore.hotel.hname} - ${bookingStore.room.type}`,
+    customerName: '김태환',
+    customerMobilePhone: phoneNumber.value.replace(/-/g, ''),
+    successUrl: `${window.location.origin}/payment-callback`,
+    failUrl: `${window.location.origin}/payment-fail`
+  });
+};
   </script>
   
   <style scoped>
@@ -321,29 +343,7 @@
   
   .sms-box label { display: block; font-weight: 500; margin-bottom: 8px; }
   .sms-box input { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
-  .sms-guidance {
-    font-size: 0.9rem;
-    color: #777;
-    margin-top: 12px;
-    margin-bottom: 20px;
-  }
-  .btn-send-sms {
-    width: 100%;
-    padding: 14px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background-color: #0A2A66;
-    color: #fff;
-    transition: background-color 0.2s ease;
-  }
-  .btn-send-sms:hover {
-    background-color: #082255;
-  }
-  
-  
+
   .sidebar { position: relative; }
   .order-summary {
     position: sticky;
@@ -379,4 +379,32 @@
     color: #fff;
     margin-top: 20px;
   }
+
+.sms-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.save-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 체크박스-라벨-안내문 간격 */
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* 체크박스와 라벨 텍스트 간격 */
+  margin: 0;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;  /* 체크박스 크기 조정 */
+  height: 16px; /* 체크박스 크기 조정 */
+}
+
   </style>

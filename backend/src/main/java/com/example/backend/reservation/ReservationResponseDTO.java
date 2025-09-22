@@ -1,0 +1,45 @@
+package com.example.backend.reservation;
+
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDate;
+
+/**
+ * 마이페이지 등에서 사용자의 예약 내역을 보여주기 위한 DTO.
+ * Reservation 엔티티를 기반으로 생성됩니다.
+ */
+@Getter
+@Builder
+public class ReservationResponseDTO {
+
+    // Reservation 정보
+    private final Integer reservationId;
+    private final LocalDate checkIn;
+    private final LocalDate checkOut;
+    private final int people;
+    private final int price;
+    private final String status;
+
+    // Room 정보
+    private final String roomType;
+
+    // Hotel 정보
+    private final String hotelName;
+    private final String address;
+    private final String hotelImage; // 호텔 대표 이미지
+
+    // JPQL에서 사용할 생성자
+    public ReservationResponseDTO(Integer reservationId, LocalDate checkIn, LocalDate checkOut, int people, int price, String status, String roomType, String hotelName, String address, String hotelImage) {
+        this.reservationId = reservationId;
+        this.checkIn = checkIn;
+        this.checkOut = checkOut;
+        this.people = people;
+        this.price = price;
+        this.status = status;
+        this.roomType = roomType;
+        this.hotelName = hotelName;
+        this.address = address;
+        this.hotelImage = hotelImage;
+    }
+}

@@ -51,41 +51,9 @@ const authStore = useAuthStore();
 
 // 이메일 로그인
 const handleEmailLogin = async () => {
-  //공백제거함.
-  const trimmedEmail = email.value.trim();
-  const trimmedPassword = password.value.trim();
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(trimmedEmail)) {
-    alert('올바른 이메일 주소를 입력해주세요.');
-    return; // 함수 종료
-  }
-
-  // 3. 비밀번호 유효성 검사 (최소 8자, 영문, 숫자, 특수문자 포함)
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-  if (!passwordRegex.test(trimmedPassword)) {
-    alert('비밀번호는 최소 8자 이상이며, 영문, 숫자, 특수문자를 포함해야 합니다.');
-    return; // 함수 종료
-  }
-
-  try {
-    const response = await axios.post('http://localhost:8888/api/auth/login', {
-      email: trimmedEmail,
-      password: trimmedPassword
-    });
-
-    const token = response.data.accessToken || response.data.token;
-    localStorage.setItem('jwtToken', token);
-    
-    console.log('로그인 성공, JWT:', token);
-
-    // fetchUserInfo 호출
-    await authStore.fetchUserInfo(token); 
-
-
-  } catch (error) {
-    console.error(error);
-  }
+  // authStore의 login 액션만 호출하면 모든 과정이 알아서 처리됩니다.
+  // login 액션 내부에서 토큰 획득 -> 사용자 정보 조회 -> 페이지 이동이 모두 일어납니다.
+  await authStore.login(email.value, password.value);
 };
 
 const handleKakaoLogin = () => {

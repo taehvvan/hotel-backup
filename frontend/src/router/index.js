@@ -24,6 +24,9 @@ import ManagerRegisterPage from '../components/ManagerRegisterPage.vue';
 import ManagerLoginPage from '../components/ManagerLoginPage.vue'; // [추가] 호텔 매니저 로그인 페이지 import
 import KakaoCallback from '../components/KakaoCallback.vue'; // 추가 카카오톡 로그인 처리 부분
 import GoogleCallback from '../components/GoogleCallback.vue';
+import PaymentSuccess from '../components/PaymentSuccess.vue';
+import PaymentFail from '../components/PaymentFail.vue';
+import PaymentCallback from '../components/PaymentCallback.vue';
 
 const routes = [
   // --- 공용 페이지 ---
@@ -44,11 +47,16 @@ const routes = [
   { path: '/heritage', name: 'HeritageList', component: HeritageListPage },
   { path: '/kakao/callback', name: 'kakaoCallback', component: KakaoCallback }, //카카오톡 컴포넌트
   { path: '/google/callback', name: 'googleCallback', component: GoogleCallback }, //구글 로그인 컴포넌트
+  
+  { path: '/payment-fail', name: 'PaymentFail', component: PaymentFail },
+  { path: '/payment-callback', name: 'PaymentCallback', component: PaymentCallback, meta: { requiresAuth: false} },
+  { path: '/payment-success', name: 'PaymentSuccess', component: PaymentSuccess },
 
   // --- 일반 사용자 전용 페이지 (로그인 필요) ---
   { path: '/mypage', name: 'UserMypage', component: UserMypage, meta: { requiresAuth: true } },
   { path: '/wishlist', name: 'Wishlist', component: WishlistPage, meta: { requiresAuth: true } },
   { path: '/booking-check', name: 'BookingCheck', component: BookingCheckPage, meta: { requiresAuth: true } },
+  
   {
     path: '/checkout', // 회원용 결제 페이지
     name: 'Checkout',
@@ -96,18 +104,27 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
+  
   const authStore = useAuthStore();
 
-  // 로그인 안 되어 있으면 localStorage에서 JWT 확인 후 fetchUserInfo
-  if (!authStore.isLoggedIn) {
-    const token = localStorage.getItem('jwtToken');
-    if (token) {
-      try {
-        await authStore.fetchUserInfo(token); // 상태 재설정
-      } catch (err) {
-        console.error('토큰 재검증 실패:', err);
-      }
-    }
+  // 1. 이동하려는 페이지가 /payment-callback 이면, 로그인 여부와 상관없이 무조건 통과!
+  if (to.path === '/payment-callback') {
+    return next();
+  }
+
+  // 2. (가장 중요) 페이지 이동 시, 먼저 로그인 상태부터 비동기적으로 확인하고 기다립니다.
+  // 이 함수는 localStorage에 토큰이 있을 경우, 서버에 유효성을 검증하고 스토어 상태를 업데이트합니다.
+  await authStore.checkLoginStatus();
+
+  // 3. 로그인이 필요한 페이지에 대한 접근 제어
+  // authStore 상태가 완전히 업데이트된 '이후에' 이 코드가 실행됩니다.
+  const isLoggedIn = authStore.isLoggedIn;
+  const userRole = authStore.userRole;
+
+  // 3-1. 로그인이 필요한 페이지인데 로그인이 안 된 경우
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    console.log(`인증이 필요한 페이지(${to.path}) 접근 시도. 로그인 페이지로 이동합니다.`);
+    return next({ name: 'Login' });
   }
 
   // ROLE 기반 접근 제한

@@ -72,7 +72,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
 
         // 새로운 액세스 토큰 생성
-        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
         return new TokenResponse("Bearer", newAccessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationInMilliSeconds());
     }
     
