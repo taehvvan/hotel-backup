@@ -11,7 +11,7 @@ import lombok.*;
 @Getter
 @Setter
 public class DetailRequest {
-    private Integer hId;
+    private Long hId;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
@@ -23,7 +23,7 @@ public class DetailRequest {
 
     @JsonCreator // JSON을 객체로 변환할 때 사용할 생성자 지정
     public DetailRequest(
-            @JsonProperty("hId") Integer hId, // hId 필드를 명시적으로 매핑
+            @JsonProperty("hId") Long hId, // hId 필드를 명시적으로 매핑
             @JsonProperty("startDate") @JsonFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @JsonProperty("endDate") @JsonFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @JsonProperty("numberOfRooms") int numberOfRooms,
