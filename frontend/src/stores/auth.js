@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', {
     userName: '',
     userRole: '',
     user: null,
+    refreshToken: ''
   }),
 
   actions: {
@@ -17,17 +18,20 @@ export const useAuthStore = defineStore('auth', {
      */
     async login(email, password) {
       try {
-        const response = await axios.post('http://localhost:8888/api/auth/login', {
+        const response = await axios.post('/api/auth/login', {
           email,
           password
         });
 
         const token = response.data.accessToken || response.data.token;
+        const refreshToken = response.data.refreshToken;
         localStorage.setItem('jwtToken', token);
+        localStorage.setItem('refreshToken', refreshToken);
         console.log('로그인 성공, JWT 저장 완료');
+        console.log('로그인 성공, Refresh Token:', refreshToken);
 
         // 사용자 정보를 가져오고, 역할에 따라 페이지를 이동시킵니다.
-        await this.fetchAndSetUser(token, true);
+        await this.fetchAndSetUser(token, refreshToken, true);
 
       } catch (error) {
         if (error.response) {
@@ -40,9 +44,9 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchAndSetUser(token, shouldRedirect = false) {
+    async fetchAndSetUser(token, refreshToken, shouldRedirect = false) {
       try {
-        const response = await axios.get('http://localhost:8888/api/auth/me', {
+        const response = await axios.get('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -51,10 +55,16 @@ export const useAuthStore = defineStore('auth', {
         this.userName = response.data.name;
         this.userRole = response.data.role;
         this.user = response.data; // 서버에서 받은 사용자 객체 전체를 저장
+        this.refreshToken = refreshToken;
 
         // 2. 사용자 정보를 localStorage에도 저장하여 상태 유지 (★★★★★ 핵심)
         localStorage.setItem('userName', this.userName);
         localStorage.setItem('userRole', this.userRole);
+        localStorage.setItem('refreshToken', refreshToken);
+
+        console.log('사용자정보저장완료');
+
+        localStorage.setItem('refreshToken', this.refreshToken);
 
         // axios 기본 헤더에 인증 토큰 설정
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -97,12 +107,14 @@ export const useAuthStore = defineStore('auth', {
 
     async checkLoginStatus() {
       const token = localStorage.getItem('jwtToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
       // 스토어는 로그아웃 상태인데 토큰이 남아있는 경우 (예: 새로고침 직후)에만 실행
       if (token && !this.isLoggedIn) {
         console.log('localStorage에 토큰이 있어 재검증을 시도합니다...');
         try {
           // fetchAndSetUser를 호출하여 실제 서버에 유효성을 검증합니다.
-          await this.fetchAndSetUser(token, false); // 페이지 이동은 하지 않음
+          await this.fetchAndSetUser(token, refreshToken, false); // 페이지 이동은 하지 않음
         } catch (error) {
           // fetchAndSetUser 내부에서 이미 logout 처리를 하지만, 추가적인 에러 로깅
           console.error("토큰 재검증 실패:", error.message);
