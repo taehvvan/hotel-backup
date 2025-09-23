@@ -52,7 +52,7 @@ public class GoogleController {
     }
 
     @GetMapping("/google/callback")
-    public ResponseEntity<TokenResponse> googleLogin(@RequestParam("code") String code) {
+    public RedirectView googleLogin(@RequestParam("code") String code) {
         try {
             UserEntity user = googleService.googleLoginOrRegister(code);
 
@@ -64,18 +64,15 @@ public class GoogleController {
             userService.saveRefreshToken(user, refreshToken);
 
             // 토큰 반환 (프론트엔드에서 처리)
-            return ResponseEntity.ok(
-                    new TokenResponse(
-                            "Bearer",
-                            accessToken,
-                            refreshToken,
-                            jwtTokenProvider.getAccessTokenExpirationInMilliSeconds()
-                    )
-            );
+           String redirectUrl = "http://localhost:5173/google/callback" + 
+                             "?access_token=" + accessToken + 
+                             "&refresh_token=" + refreshToken;
+            
+            return new RedirectView(redirectUrl);
 
         } catch (Exception e) {
             System.err.println("Google 로그인 실패: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return new RedirectView("http://localhost:5173/error"); 
         }
     }
 }

@@ -14,7 +14,7 @@
       <button type="button" class="btn-login-email" @click.prevent="handleEmailLogin">로그인</button>
 
       <div class="extra-links">
-        <a href="#">비밀번호 찾기</a>
+        <router-link to="/password-reset">비밀번호 찾기</router-link>
         <span class="divider">|</span>
         <router-link to="/register">회원가입</router-link>
       </div>
@@ -74,13 +74,16 @@ const handleEmailLogin = async () => {
       password: trimmedPassword
     });
 
-    const token = response.data.accessToken || response.data.token;
-    localStorage.setItem('jwtToken', token);
-    
-    console.log('로그인 성공, JWT:', token);
+    const accessToken = response.data.accessToken;
+    const refreshToken = response.data.refreshToken;
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+
+    console.log('로그인 성공, Access Token:', accessToken);
+    console.log('로그인 성공, Refresh Token:', refreshToken);
 
     // fetchUserInfo 호출
-    await authStore.fetchUserInfo(token); 
+    await authStore.fetchUserInfo(accessToken); 
 
 
   } catch (error) {

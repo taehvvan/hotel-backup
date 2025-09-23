@@ -77,7 +77,7 @@ public class UserService {
     }
     
     public UserEntity findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmail(email).orElseThrow(()->new IllegalArgumentException("이메일 못 찾음"));
     }
     
     public UserEntity googleLoginOrRegister(String code) throws Exception {

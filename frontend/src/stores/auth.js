@@ -11,18 +11,17 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(email, password) {
       try {
-        // 로그인 요청
         const response = await axios.post('http://localhost:8888/api/auth/login', {
           email,
           password
         });
 
-        const token = response.data.accessToken || response.data.token;
-        localStorage.setItem('jwtToken', token);
-        console.log('로그인 성공, JWT:', token);
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        console.log('로그인 성공, Access Token:', response.data.accessToken);
 
-        // 사용자 정보 가져오기 및 role 기반 이동
-        await this.fetchUserInfo(token);
+        // 토큰을 저장한 후 인자 없이 fetchUserInfo 호출
+        await this.fetchUserInfo();
 
       } catch (error) {
         if (error.response) {
@@ -35,7 +34,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchUserInfo(token) {
+    async fetchUserInfo() {
+      // localStorage에서 직접 토큰을 가져오도록 수정
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.error('액세스 토큰이 없습니다. 로그인 상태를 초기화합니다.');
+        this.logout();
+        return;
+      }
+
       try {
         const response = await axios.get('http://localhost:8888/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
@@ -57,13 +64,21 @@ export const useAuthStore = defineStore('auth', {
         }
       } catch (err) {
         console.error('사용자 정보 조회 실패:', err);
+        // 토큰이 유효하지 않으면 로그아웃 처리
+        this.logout();
       }
     },
 
     async checkLoginStatus() {
-      const token = localStorage.getItem('jwtToken');
+      const token = localStorage.getItem('accessToken');
       if (token) {
-        await this.fetchUserInfo(token); // store 상태 갱신
+        try {
+          // fetchUserInfo가 토큰을 직접 가져오도록 수정되었으므로 인자 제거
+          await this.fetchUserInfo();
+        } catch (err) {
+          console.error('액세스 토큰이 만료되었거나 유효하지 않습니다.');
+          this.logout();
+        }
       } else {
         this.isLoggedIn = false;
         this.userName = '';
@@ -72,7 +87,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     logout() {
-      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       this.isLoggedIn = false;
       this.userName = '';
       this.userRole = '';

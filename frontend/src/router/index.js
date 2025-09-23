@@ -24,6 +24,7 @@ import ManagerRegisterPage from '../components/ManagerRegisterPage.vue';
 import ManagerLoginPage from '../components/ManagerLoginPage.vue'; // [추가] 호텔 매니저 로그인 페이지 import
 import KakaoCallback from '../components/KakaoCallback.vue'; // 추가 카카오톡 로그인 처리 부분
 import GoogleCallback from '../components/GoogleCallback.vue';
+import PasswordReset from '@/components/PasswordReset.vue';
 
 const routes = [
   // --- 공용 페이지 ---
@@ -44,6 +45,7 @@ const routes = [
   { path: '/heritage', name: 'HeritageList', component: HeritageListPage },
   { path: '/kakao/callback', name: 'kakaoCallback', component: KakaoCallback }, //카카오톡 컴포넌트
   { path: '/google/callback', name: 'googleCallback', component: GoogleCallback }, //구글 로그인 컴포넌트
+  { path: '/password-reset', name: 'PasswordReset', component: PasswordReset},
 
   // --- 일반 사용자 전용 페이지 (로그인 필요) ---
   { path: '/mypage', name: 'UserMypage', component: UserMypage, meta: { requiresAuth: true } },

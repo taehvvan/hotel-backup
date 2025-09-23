@@ -79,7 +79,7 @@ public class SecurityContext {
                         "/api/send-code",
                         "/api/verify-code",
                         "/api/check-email",
-
+                        "/api/auth/**",
                         "/api/google/login",
                         "/api/google/callback",
                         "/", "/api/search",
@@ -87,7 +87,8 @@ public class SecurityContext {
                         "/terms", "/privacy",
                         "/accommodations", "/landmarks", "/heritage",
                         "/checkout-guest",
-                        "/images/**", "/css/**", "/js/**", "/error"
+                        "/images/**", "/css/**", "/js/**", "/error",
+                        "/api/request-reset-password", "/api/verify-code-for-password-reset"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
                 .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist").hasRole("USER")

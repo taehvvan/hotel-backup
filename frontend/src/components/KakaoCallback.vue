@@ -21,11 +21,14 @@ onMounted(async () => {
   if (code) {
     try {
       const response = await axios.get(`http://localhost:8888/api/kakao/callback?code=${code}`);
-      const token = response.data.accessToken;
-
+      //const token = response.data.accessToken;
+      const accessToken = response.data.accessToken; 
+      const refreshToken = response.data.refreshToken;
       // --- 이 부분이 핵심입니다 ---
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
       // loginSuccess는 Pinia 스토어의 액션이어야 합니다.
-      await authStore.loginSuccess(token);
+      await authStore.fetchUserInfo();
 
       //alert('로그인 성공!');
       router.push({ name: 'MainPage' });
