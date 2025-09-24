@@ -25,6 +25,9 @@ import ManagerLoginPage from '../components/ManagerLoginPage.vue'; // [추가] �
 import KakaoCallback from '../components/KakaoCallback.vue'; // 추가 카카오톡 로그인 처리 부분
 import GoogleCallback from '../components/GoogleCallback.vue';
 import PasswordReset from '@/components/PasswordReset.vue';
+import PaymentSuccess from '../components/PaymentSuccess.vue';
+import PaymentFail from '../components/PaymentFail.vue';
+import PaymentCallback from '../components/PaymentCallback.vue';
 
 const routes = [
   // --- 공용 페이지 ---
@@ -46,7 +49,10 @@ const routes = [
   { path: '/kakao/callback', name: 'kakaoCallback', component: KakaoCallback }, //카카오톡 컴포넌트
   { path: '/google/callback', name: 'googleCallback', component: GoogleCallback }, //구글 로그인 컴포넌트
   { path: '/password-reset', name: 'PasswordReset', component: PasswordReset},
-
+  { path: '/payment-fail', name: 'PaymentFail', component: PaymentFail },
+  { path: '/payment-callback', name: 'PaymentCallback', component: PaymentCallback, meta: { requiresAuth: false} },
+  { path: '/payment-success', name: 'PaymentSuccess', component: PaymentSuccess },
+  
   // --- 일반 사용자 전용 페이지 (로그인 필요) ---
   { path: '/mypage', name: 'UserMypage', component: UserMypage, meta: { requiresAuth: true } },
   { path: '/wishlist', name: 'Wishlist', component: WishlistPage, meta: { requiresAuth: true } },
@@ -100,9 +106,14 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
+  // 1. 이동하려는 페이지가 /payment-callback 이면, 로그인 여부와 상관없이 무조건 통과!
+  if (to.path === '/payment-callback') {
+    return next();
+  }
+
   // 로그인 안 되어 있으면 localStorage에서 JWT 확인 후 fetchUserInfo
   if (!authStore.isLoggedIn) {
-    const token = localStorage.getItem('jwtToken');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       try {
         await authStore.fetchUserInfo(token); // 상태 재설정

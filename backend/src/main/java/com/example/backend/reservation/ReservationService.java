@@ -21,6 +21,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
 
     public Reservation createReservation(ReservationRequest request) {
 
@@ -74,5 +75,27 @@ public class ReservationService {
         System.out.println("[BACKEND-SERVICE] 조회 결과: 총 {}개의 예약 내역을 찾았습니다 : " + results.size());
 
         return results;
+    }
+
+    public ReservationResponseDTO findGuestReservation(Integer pId, String phone) {
+        // 1. payments 테이블에서 결제정보 조회
+        Payment payment = paymentRepository.findBypIdAndPhone(pId, phone)
+                .orElse(null);
+
+        if (payment == null) return null;
+
+        // 2. 결제에 연결된 예약 조회
+        Reservation reservation = reservationRepository.findById(payment.getReId())
+                .orElse(null);
+
+        if (reservation == null) return null;
+
+        // 3. DTO로 변환 후 반환
+        return new ReservationResponseDTO(reservation);
+    }
+
+    public Reservation findReservationById(Integer reservationId) {
+        return reservationRepository.findById(reservationId)
+                .orElse(null); // 없으면 null 반환
     }
 }

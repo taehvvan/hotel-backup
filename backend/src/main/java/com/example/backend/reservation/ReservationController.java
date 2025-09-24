@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,7 @@ public class ReservationController {
         return ResponseEntity.ok(reservation);
     }
 
-    // 현재 로그인한 사용자의 모든 예약 내역을 조회하는 엔드포인트
+    // 회원 예약 조회
     @GetMapping
     public ResponseEntity<List<ReservationResponseDTO>> getUserReservations(
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
@@ -49,5 +50,30 @@ public class ReservationController {
         List<ReservationResponseDTO> reservations = reservationService.findMyReservations(userId);
         
         return ResponseEntity.ok(reservations);
+    }
+
+    // 비회원 예약 조회 (결제번호 + 전화번호)
+    @GetMapping("/guest")
+    public ResponseEntity<ReservationResponseDTO> getGuestReservation(
+            @RequestParam Integer pId,        
+            @RequestParam String phone
+            ) {
+
+        ReservationResponseDTO reservation = reservationService.findGuestReservation(pId, phone);
+        if (reservation == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(reservation);
+    }
+
+    // 비회원 예약 상세 조회
+    @GetMapping("/guest/detail")
+    public ResponseEntity<ReservationResponseDTO> getGuestReservationDetail(
+            @RequestParam Integer reservationId) {
+
+        Reservation reservation = reservationService.findReservationById(reservationId);
+        if (reservation == null) return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(new ReservationResponseDTO(reservation));
     }
 }

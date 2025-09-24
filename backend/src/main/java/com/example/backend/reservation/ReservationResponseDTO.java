@@ -42,4 +42,25 @@ public class ReservationResponseDTO {
         this.address = address;
         this.hotelImage = hotelImage;
     }
+
+    public ReservationResponseDTO(Reservation reservation) {
+        this.reservationId = reservation.getReId();
+        this.checkIn = reservation.getCheckin();
+        this.checkOut = reservation.getCheckout();
+        this.people = reservation.getPeople();
+        this.price = reservation.getPrice();
+        this.status = reservation.getStatus();
+    
+        // 한 번만 final 필드 초기화
+        this.roomType = reservation.getRoom() != null ? reservation.getRoom().getType() : "";
+        this.hotelName = (reservation.getRoom() != null && reservation.getRoom().getHotel() != null) 
+                         ? reservation.getRoom().getHotel().getHName() : "";
+        this.address = (reservation.getRoom() != null && reservation.getRoom().getHotel() != null)
+                         ? reservation.getRoom().getHotel().getAddress() : "";
+        this.hotelImage = (reservation.getRoom() != null && reservation.getRoom().getHotel() != null
+                           && reservation.getRoom().getHotel().getImages() != null
+                           && !reservation.getRoom().getHotel().getImages().isEmpty())
+                           ? reservation.getRoom().getHotel().getImages().get(0).getImageUrl() : "";
+    }
+    
 }

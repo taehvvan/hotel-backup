@@ -6,6 +6,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.backend.login.security.PrincipalDetails;
+import com.example.backend.register.UserEntity;
 
 import lombok.RequiredArgsConstructor;
 
@@ -15,29 +16,32 @@ import lombok.RequiredArgsConstructor;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final PaymentRepository paymentRepository;
 
     @PostMapping("/complete")
     public ResponseEntity<?> completePayment(@RequestBody PaymentRequest dto,
                                              @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        if (principalDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 정보가 없습니다.");
-        }
 
-        // PrincipalDetails → UserEntity → u_id
-        Integer uId = principalDetails.getUser().getId();
+        UserEntity user = principalDetails != null ? principalDetails.getUser() : null;
+
+        System.out.println("디버깅 - rId: " + dto.getRId() + ", reId: " + dto.getReId()); // 로그 확인
 
         Payment payment = paymentService.completePayment(
-                uId,
+                user,
                 dto.getRId(),
                 dto.getReId(),
-                dto.getPayMethod()
+                dto.getPayMethod(),
+                dto.getPhone()
         );
 
-        if (payment != null) {
-            paymentRepository.save(payment);  // 결제 정보 저장
-        }
-
         return ResponseEntity.ok(payment);
+    }
+
+    // 비회원 예약 확인
+    @GetMapping("/guest")
+    public ResponseEntity<?> checkGuestReservation(@RequestParam Integer pId,
+                                                   @RequestParam String phone) {
+        ReservationResponseDTO dto = paymentService.findReservationForGuest(pId, phone);
+        if (dto != null) return ResponseEntity.ok(dto);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("예약 정보를 찾을 수 없습니다.");
     }
 }

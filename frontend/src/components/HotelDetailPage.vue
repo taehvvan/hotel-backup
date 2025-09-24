@@ -421,6 +421,7 @@ const goToCheckout = async (room) => {
       const day = String(d.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
+    
 
     // 1. [예약 생성 요청]을 위한 데이터 준비
     const reservationData = {

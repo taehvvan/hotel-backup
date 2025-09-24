@@ -19,6 +19,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
            "ORDER BY r.checkin DESC")
     List<ReservationResponseDTO> findMyReservationsByUserId(@Param("userId") Integer userId);
 
+    Reservation findByReId(Integer reId);
+
     @Query("SELECT r FROM Reservation r WHERE r.user.id = :userId")
     List<Reservation> findRawReservationsByUserIdForDebug(@Param("userId") Integer userId);
 }

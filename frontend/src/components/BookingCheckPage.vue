@@ -23,17 +23,47 @@
   
   <script setup>
   import { ref } from 'vue';
+  import axios from 'axios';
+  import { useRouter } from 'vue-router';
   
   const bookingNumber = ref('');
   const phoneNumber = ref('');
+  const router = useRouter();
   
-  const handleBookingCheck = () => {
-    // 실제 예약 확인 로직 (백엔드와 통신)
-    console.log('Checking booking for:', {
-      bookingNumber: bookingNumber.value,
-      phoneNumber: phoneNumber.value
-    });
-    alert(`${bookingNumber.value} 예약 조회를 시작합니다.`);
+  const handleBookingCheck = async () => {
+    if (!bookingNumber.value || !phoneNumber.value) {
+      alert('예약 번호와 전화번호를 모두 입력해주세요.');
+      return;
+    }
+
+    try {
+      const response = await axios.get('http://localhost:8888/api/reservations/guest', {
+        params: {
+          phone: phoneNumber.value,
+          pId: bookingNumber.value
+        }
+      });
+
+      const reservation = response.data;
+
+      if (!reservation) {
+        alert('예약 정보를 찾을 수 없습니다. 입력 정보를 확인해주세요.');
+        return;
+      }
+
+      // 예약 조회 성공 → 예약 상세 페이지 또는 확인 페이지로 이동
+      // 예약 정보를 router.query로 전달
+      router.push({
+        path: '/booking-detail',
+        query: {
+          reservationId: reservation.reservationId
+        }
+      });
+
+    } catch (error) {
+      console.error('예약 조회 중 오류 발생:', error);
+      alert('예약 조회에 실패했습니다. 다시 시도해주세요.');
+    }
   };
   </script>
   
