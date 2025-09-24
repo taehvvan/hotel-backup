@@ -120,7 +120,7 @@
               <div class="room-booking">
                 <strong class="room-price">{{ room.price.toLocaleString() }}원</strong>
                 <span>세금 및 봉사료 포함</span>
-                <button class="btn-book">예약하기</button>
+                <button class="btn-book" @click="goToCheckout(room)">예약하기</button>
               </div>
             </div>
           </div>
@@ -224,21 +224,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, onUnmounted, watch, nextTick, computed, toRaw } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useBookingStore } from '@/stores/booking'
+import { useUserStore } from '@/stores/user'
+import axios from 'axios'
 
-const route = useRoute();
+const route = useRoute()
+const router = useRouter()
+const bookingStore = useBookingStore()
+const userStore = useUserStore()
 
 const isStickyNavVisible = ref(false);
 const stickyNavBarRef = ref(null);
 
-const hId = ref(route.params.hId);
+const search = bookingStore.search;
+const hotel = ref(bookingStore.hotel);
+const room = bookingStore.room;
+
 const checkIn = ref(null);
 const checkOut = ref(null);
 const rooms = ref(1);
 const persons = ref(2);
 
-const hotel = ref(null);
+const uId = userStore.user?.id || null;
+const hId = ref(route.params.hId);
 
 const getRatingText = (rating) => {
   if (rating >= 4.5) return '최고에요';
@@ -398,6 +408,65 @@ watch(hotel, async (newVal) => {
     initMap(newVal.hname);
   }
 });
+
+// 예약하기 버튼 클릭 시 실행
+const goToCheckout = async (room) => {
+  try {
+    bookingStore.setBooking(search, toRaw(hotel.value), room);
+
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // 1. [예약 생성 요청]을 위한 데이터 준비
+    const reservationData = {
+      rId: room.rid,
+      uId: userStore.user?.id || null,
+      checkin: formatDate(checkIn.value),
+      checkout: formatDate(checkOut.value),
+      people: persons.value,
+      price: room.price * rooms.value,
+    };
+
+    console.log('예약 데이터:', reservationData);
+
+    // 1. 예약 생성 요청
+    const reservationResponse = await axios.post('http://localhost:8888/api/reservations', reservationData, {
+      headers: {
+        // 로그인된 사용자의 경우 토큰을 함께 보냅니다.
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`, // 'accessToken' 대신 'jwtToken' 사용
+      },
+    });
+
+    const reId = reservationResponse.data.reId;
+    if (!reId) {
+        throw new Error("서버로부터 예약 ID를 받지 못했습니다.");
+    }
+
+    console.log('생성된 예약 ID:', reId);
+
+    // 3. Pinia 스토어에 예약 ID를 저장합니다.
+    // 이렇게 하면 다음 페이지(/checkout)에서 이 ID를 사용할 수 있습니다.
+    bookingStore.setReservationId(reId);
+
+    // 결제 후 체크아웃 페이지로 이동
+    router.push('/checkout');
+ 
+
+  } catch (error) {
+    console.error('예약 생성 중 오류 발생:', error);
+    if (error.response) {
+      console.error('서버 응답 데이터:', error.response.data);
+      alert(`예약 생성에 실패했습니다: ${error.response.data.message || '서버 오류'}`);
+    } else {
+      alert('예약 생성에 실패했습니다. 네트워크 연결을 확인해주세요.');
+    }
+  }
+};
 
 watch(
   () => route.query,

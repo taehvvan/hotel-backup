@@ -79,7 +79,7 @@ public class SecurityContext {
                         "/api/send-code",
                         "/api/verify-code",
                         "/api/check-email",
-                        "/api/auth/**",
+                        "/api/auth/**", "/api/auth/me",
                         "/api/google/login",
                         "/api/google/callback",
                         "/api/detail",  
