@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +15,7 @@ import java.util.List;
 public class Room {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "r_id")
     private Long rId;
 
@@ -37,10 +39,13 @@ public class Room {
     private Integer people;
 
     @Column(name = "checkin_time")
-    private LocalDate checkinTime;
+    private String checkinTime;
 
     @Column(name = "checkout_time")
-    private LocalDate checkoutTime;
+    private String checkoutTime;
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<HotelImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomAvailability> roomAvailabilities = new ArrayList<>();

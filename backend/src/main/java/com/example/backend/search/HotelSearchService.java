@@ -1,6 +1,5 @@
 package com.example.backend.search;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,7 +16,6 @@ public class HotelSearchService {
 
     private final HotelRepository hotelRepository;
 
-    @Autowired
     public HotelSearchService(HotelRepository hotelRepository) {
         this.hotelRepository = hotelRepository;
     }
@@ -66,6 +64,19 @@ public class HotelSearchService {
                 })
                 .collect(Collectors.toList());
         dto.setServices(serviceDTOs);
+
+         // 이미지 변환 로직 추가 (로컬 경로 -> 웹 URL)
+        List<HotelImageDTO> imageDTOs = hotel.getImages().stream()
+                .map(image -> {
+                    HotelImageDTO iDto = new HotelImageDTO();
+                    String webUrl = image.getImageUrl()
+                                         .replace("D:/hotel_images", "http://localhost:8888/images");
+                    iDto.setImageUrl(webUrl);
+                    iDto.setFilename(image.getFilename());
+                    return iDto;
+                })
+                .collect(Collectors.toList());
+        dto.setImages(imageDTOs);
 
         // rooms 처리 (null-safe)
         List<RoomDTO> roomDTOs = Optional.ofNullable(hotel.getRooms())

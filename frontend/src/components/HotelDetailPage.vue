@@ -1,356 +1,417 @@
 <template>
-    <div v-if="hotel" class="hotel-detail-page">
-      <section class="detail-header">
-        <div class="image-gallery">
-          <div class="main-image">
-            <img :src="hotel.image" :alt="hotel.name">
-          </div>
-          <div class="sub-images">
-            <img :src="hotel.image" :alt="hotel.name + ' 이미지 2'">
-            <img :src="hotel.image" :alt="hotel.name + ' 이미지 3'">
-            <img :src="hotel.image" :alt="hotel.name + ' 이미지 4'">
-            <img :src="hotel.image" :alt="hotel.name + ' 이미지 5'">
-            <div class="more-images-overlay">
-              <button>+ {{ hotel.imageCount }}</button>
-            </div>
-          </div>
+  <div v-if="hotel" class="hotel-detail-page">
+    <section class="detail-header">
+      <div class="image-gallery">
+        <!-- Placeholder Images - real images will be fetched and displayed here -->
+        <div class="main-image">
+          <img src="https://placehold.co/1200x800?text=Hotel+Image+1" :alt="hotel.hname">
         </div>
-        <div class="header-content-wrapper">
-          <div class="header-content">
-            <div class="info-main">
-              <p class="hotel-info-line">
-                <span class="hotel-type-display">{{ hotel.type }}</span>
-                <span class="elidia-level">
-                  <span v-for="i in hotel.elidiaLevel" :key="i" class="level-star">★</span>
-                </span>
-              </p>
-              <h1>{{ hotel.name }}</h1>
-              <p class="hotel-english-name">{{ hotel.englishName }}</p>
-            </div>
-            <div class="info-price">
-              <strong class="price-value">{{ hotel.price.toLocaleString() }}원</strong>
-              <button class="like-button">♡</button>
-            </div>
+     <!-- 메인 이미지 -->
+<div class="main-image">
+  <img :src="`http://localhost:8888/images/${hotel.type}/${hotel.hId}.jpg`" :alt="hotel.hname">
+</div>
+
+<!-- 서브 이미지 -->
+<div class="sub-images">
+  <img 
+    v-for="index in 3" 
+    :key="index" 
+    :src="`http://localhost:8888/images/${hotel.type}/${hotel.hId}_${index}.jpg`" 
+    :alt="hotel.hname + ' 이미지 ' + index"
+  >
+  <div class="more-images-overlay">
+    <button>+ 0</button>
+  </div>
+</div>
+
+      </div>
+      <div class="header-content-wrapper">
+        <div class="header-content">
+          <div class="info-main">
+            <p class="hotel-info-line">
+              <span class="hotel-type-display">{{ hotel.type }}</span>
+              <span class="elidia-level">
+                <span v-for="i in hotel.star" :key="i" class="level-star">★</span>
+              </span>
+            </p>
+            <h1>{{ hotel.hname }}</h1>
           </div>
-        </div>
-      </section>
-  
-      <div :class="['sticky-nav-bar', { 'is-visible': isStickyNavVisible }]" ref="stickyNavBarRef">
-        <div class="sticky-nav-content">
-          <nav class="sticky-nav-links">
-            <a href="#rooms" @click.prevent="scrollToSection('rooms')">객실</a>
-            <a href="#amenities" @click.prevent="scrollToSection('amenities')">시설</a>
-            <a href="#amenities" @click.prevent="scrollToSection('amenities')">서비스 및 부대시설</a>
-            <a href="#map-section" @click.prevent="scrollToSection('map-section')">위치</a>
-            <a href="#reviews-section" @click.prevent="scrollToSection('reviews-section')">리뷰</a>
-          </nav>
-          <div class="sticky-nav-booking">
-            <span class="sticky-nav-price">{{ hotel.price.toLocaleString() }}원</span>
-            <button class="sticky-nav-button">예약하기</button>
+          <div class="info-price">
+            <strong class="price-value">최저가 {{ hotel.minPrice.toLocaleString() }}원</strong>
+            <button class="like-button">♡</button>
           </div>
         </div>
       </div>
-  
-      <main class="detail-main-content">
-        <div class="content-column">
-          <div class="summary-cards-wrapper">
-            <div class="summary-card rating-review-card">
-              <h3 class="card-title">
-                <div class="rating-badge-wrapper">
-                  <span class="score-badge-yellow">{{ hotel.rating.toFixed(1) }}</span>
-                  <span class="rating-text-yellow">{{ getRatingText(hotel.rating) }}</span>
-                </div>
-                <span class="review-count">({{ hotel.reviews.toLocaleString() }}명 평가)</span> 
-                <span class="arrow-icon">›</span>
-              </h3>
-              <p class="review-quote-text">"{{ hotel.reviewSnippet }}"</p>
-            </div>
-  
-            <div class="summary-card amenities-preview-card">
-              <h3 class="card-title">서비스 및 부대시설 <span class="arrow-icon">›</span></h3>
-              <div class="amenities-preview-list">
-                <span>🅿️ 셀프 주차 (추가 비용 발생)</span>
-                <span>📶 무료 Wi-Fi (모든 객실)</span>
-                <span>🍴 조식 서비스</span>
-              </div>
-            </div>
-  
-            <div class="summary-card location-preview-card">
-              <h3 class="card-title">위치 정보 <span class="arrow-icon">›</span></h3>
-              <div class="location-preview-content">
-                <span>📍 {{ hotel.locationDetail }}</span>
-                <a href="#" class="btn-map">지도보기</a>
-              </div>
-            </div>
-          </div>
-  
-          <section id="rooms" class="detail-section">
-            <h2>객실 선택</h2>
-            <div class="room-list">
-              <div v-for="room in hotel.rooms" :key="room.id" class="room-card">
-                <div class="room-image">
-                  <img :src="room.image" :alt="room.name">
-                </div>
-                <div class="room-info">
-                  <h4>{{ room.name }}</h4>
-                  <p class="room-spec">
-                    <span v-if="room.freeCancel">✔️ 무료취소 - {{ room.freeCancelUntil }} 까지</span>
-                    <span v-if="room.breakfastIncluded">🍴 조식 포함</span>
-                    <span>🛏️ {{ room.bedType }}</span>
-                  </p>
-                  <a href="#" class="btn-more-info">상세 정보 ></a>
-                </div>
-                <div class="room-booking">
-                  <strong class="room-price">{{ room.price.toLocaleString() }}원</strong>
-                  <span>세금 및 봉사료 포함</span>
-                  <button class="btn-book">예약하기</button>
-                </div>
-              </div>
-            </div>
-          </section>
-          
-          <section id="amenities" class="detail-section">
-            <h2>서비스 및 부대시설</h2>
-            <div class="amenities-grid">
-              <span v-for="amenity in hotel.fullAmenities" :key="amenity">✔️ {{ amenity }}</span>
-            </div>
-          </section>
-  
-          <section id="hotel-info" class="detail-section">
-            <h2>숙소 이용 정보</h2>
-            <ul>
-              <li><strong>체크인 : 15:00 | 체크아웃 : 12:00</strong></li>
-              <li>정확한 체크인/체크아웃 시간은 숙소에 문의해주세요.</li>
-            </ul>
-          </section>
-  
-          <section id="map-section" class="detail-section map-section">
-            <h2>위치</h2>
-            <div class="map-placeholder">
-              <img src="https://via.placeholder.com/800x400?text=Hotel+Location+Map" alt="호텔 위치 지도">
-            </div>
-          </section>
-  
-          <section id="nearby-attractions" class="detail-section nearby-attractions">
-            <h2>근처 문화재 및 랜드마크</h2>
-            <div class="attraction-list">
-              <div class="attraction-item">
-                <img src="https://via.placeholder.com/100x100?text=Attraction1" alt="문화재 이미지">
-                <div class="attraction-info">
-                  <strong>경복궁</strong>
-                  <p>차량 10분</p>
-                </div>
-              </div>
-              <div class="attraction-item">
-                <img src="https://via.placeholder.com/100x100?text=Attraction2" alt="문화재 이미지">
-                <div class="attraction-info">
-                  <strong>남산타워</strong>
-                  <p>차량 15분</p>
-                </div>
-              </div>
-               <div class="attraction-item">
-                <img src="https://via.placeholder.com/100x100?text=Attraction3" alt="문화재 이미지">
-                <div class="attraction-info">
-                  <strong>명동</strong>
-                  <p>도보 5분</p>
-                </div>
-              </div>
-            </div>
-          </section>
-  
-          <section id="reviews-section" class="detail-section reviews-section">
-            <h2>리얼 리뷰 
-              <div class="rating-badge-wrapper">
-                <span class="score-badge-yellow">{{ hotel.rating.toFixed(1) }}</span>
-                <span class="review-count">({{ hotel.reviews.toLocaleString() }}개 평가)</span>
-              </div>
-              <a href="#" class="sort-reviews">▾ 정렬 및 필터</a>
-            </h2>
-            <div class="review-list">
-              <div v-for="(review, index) in hotel.userReviews" :key="index" class="review-card">
-                <div class="review-header">
-                  <img :src="review.userProfileImg" alt="프로필" class="user-profile-img">
-                  <div class="user-info">
-                    <strong class="user-nickname">{{ review.userName }}</strong>
-                    <span class="user-level">{{ review.userLevel }}</span>
-                    <span class="user-visits">{{ review.userVisits }}</span>
-                    <span class="review-date">{{ review.date }}</span>
-                  </div>
-                  <div class="review-rating">
-                    <span v-for="star in review.stars" :key="star">★</span>
-                  </div>
-                </div>
-                <div class="review-images" v-if="review.images && review.images.length">
-                  <img v-for="(img, idx) in review.images" :key="idx" :src="img" :alt="'리뷰 이미지 ' + (idx+1)">
-                  <div v-if="review.extraImagesCount > 0" class="more-review-images-overlay">
-                    <span>+{{ review.extraImagesCount }}</span>
-                  </div>
-                </div>
-                <p class="review-room-info">{{ review.roomType }}</p>
-                <p class="review-text">{{ review.text }}</p>
-                <button class="btn-more-review">더보기</button>
-                <div class="review-actions">
-                  <button class="like-review-button">👍 0</button>
-                  <button class="report-review-button">⛔ 신고</button>
-                </div>
-              </div>
-            </div>
-          </section>
-  
+    </section>
+
+    <div :class="['sticky-nav-bar', { 'is-visible': isStickyNavVisible }]" ref="stickyNavBarRef">
+      <div class="sticky-nav-content">
+        <nav class="sticky-nav-links">
+          <a href="#rooms" @click.prevent="scrollToSection('rooms')">객실</a>
+          <a href="#amenities" @click.prevent="scrollToSection('amenities')">시설</a>
+          <a href="#amenities" @click.prevent="scrollToSection('amenities')">서비스 및 부대시설</a>
+          <a href="#map-section" @click.prevent="scrollToSection('map-section')">위치</a>
+          <a href="#reviews-section" @click.prevent="scrollToSection('reviews-section')">리뷰</a>
+        </nav>
+        <div class="sticky-nav-booking">
+          <span class="sticky-nav-price">{{ hotel.minPrice.toLocaleString() }}원</span>
+          <button class="sticky-nav-button">예약하기</button>
         </div>
-  
-        <div class="sidebar-column">
-          <div class="sticky-sidebar">
-            <div class="coupon-box">
-              <h4><strong>회원가입 10%</strong> 할인 쿠폰</h4>
-              <button class="btn-download">⬇️ 쿠폰 받기</button>
-              <a href="#" class="coupon-dropdown">적용 가능한 쿠폰 혜택 ⌄</a>
-            </div>
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted, onUnmounted, nextTick } from 'vue';
-  
-  const props = defineProps(['id']);
-  
-  const hotel = ref(null);
-  const isStickyNavVisible = ref(false);
-  const stickyNavBarRef = ref(null); // sticky nav bar의 DOM 요소를 참조하기 위한 ref
-  
-  const getRatingText = (rating) => {
-    if (rating >= 4.5) return '최고에요';
-    if (rating >= 4.0) return '아주 좋아요';
-    if (rating >= 3.0) return '괜찮아요';
-    return '보통이에요';
-  };
-  
-  const handleScroll = () => {
-    const headerContentWrapper = document.querySelector('.header-content-wrapper');
-    if (!headerContentWrapper) return;
-  
-    const headerBottom = headerContentWrapper.getBoundingClientRect().bottom;
-    // 헤더 콘텐츠 wrapper가 화면 상단으로 사라질 때 스티키 네비게이션 표시
-    isStickyNavVisible.value = headerBottom < 0; 
-  };
-  
-  // 섹션으로 부드럽게 스크롤하는 함수
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      // 스티키 헤더의 높이를 고려하여 스크롤 위치 조정
-      const offset = stickyNavBarRef.value ? stickyNavBarRef.value.offsetHeight : 0;
-      window.scrollTo({
-        top: element.offsetTop - offset - 20, // 20px 추가 여백
-        behavior: 'smooth'
-      });
-    }
-  };
-  
-  
-  onMounted(() => {
-    console.log("전달받은 호텔 ID:", props.id);
-  
-    hotel.value = {
-      id: props.id, 
-      name: '호텔 한큐 레스파이어 오사카', 
-      englishName: 'Hotel Hankyu RESPIRE OSAKA',
-      type: '호텔', 
-      elidiaLevel: 4, 
-      grade: '5성급 호텔', 
-      location: '오사카', 
-      locationDetail: 'Kita, Osaka, Osaka, 1-1 Ofukacho, 기타, 오사카, 일본, 530-0011', 
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', 
-      price: 248951, 
-      rating: 8.9, 
-      reviews: 42116, 
-      imageCount: 13,
-      reviewSnippet: '한큐 레스파이어 오사카 스탠디드 트윈 후기입니다. 6월 말 커플여행으로 숙박했습니다. 🧡 JR 오사카역과 오사카메...', 
-      fullAmenities: [
-        '셀프 주차 (추가 비용 발생)', '무료 Wi-Fi (모든 객실)', '조식 서비스', '자동판매기',
-        '금연 숙소', '여행 가방 보관 서비스', '24시간 프런트 데스크', '익스프레스 체크인',
-        '정원', '24시간 피트니스 시설', '엘리베이터', '휠체어 접근 가능', '발코니/테라스',
-        '공용 전자레인지', '다국어 가능 직원'
-      ],
-      rooms: [
-        { 
-          id: 101, 
-          name: '스탠다드 룸, 트윈 베드, [금연]', 
-          image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-          freeCancel: true,
-          freeCancelUntil: '25.10.12 23:59',
-          breakfastIncluded: true,
-          bedType: '싱글베드 2개',
-          price: 248951 
-        },
-        { 
-          id: 102, 
-          name: '디럭스 룸, 킹 베드, [금연]', 
-          image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-          freeCancel: true,
-          freeCancelUntil: '25.10.12 23:59',
-          breakfastIncluded: true,
-          bedType: '킹베드 1개',
-          price: 266734 
-        },
-      ],
-      userReviews: [ // [추가] 사용자 리뷰 데이터
-        {
-          userProfileImg: 'https://via.placeholder.com/40x40?text=User1',
-          userName: '베스트리뷰어',
-          userLevel: '25만원 이상 결제',
-          userVisits: '숙박 2회, 장소 10',
-          date: '1주 전',
-          stars: 4,
-          images: [
-            'https://via.placeholder.com/150x100?text=ReviewImg1-1',
-            'https://via.placeholder.com/150x100?text=ReviewImg1-2',
-            'https://via.placeholder.com/150x100?text=ReviewImg1-3',
-            'https://via.placeholder.com/150x100?text=ReviewImg1-4',
-          ],
-          extraImagesCount: 0,
-          roomType: '12~13층 스탠다드 트윈(금연)',
-          text: '한큐 레스파이어 오사카 스탠디드 트윈 후기입니다. 6월 말 커플여행으로 숙박했습니다. 🧡 JR 오사카역과 오사카메트로 우메다역이 연결되어 있고 긴자선이랑 리무진 버스도 호텔 바로 앞에서 탑승 가능해요. 스탠다드 트윈룸이라 큰 기대를 안 했는데...',
-        },
-        {
-          userProfileImg: 'https://via.placeholder.com/40x40?text=User2',
-          userName: '베스트리뷰어',
-          userLevel: '다이아몬드고객',
-          userVisits: '숙박 4회, 장소 126 - 장소 39',
-          date: '1주 전',
-          stars: 5,
-          images: [
-            'https://via.placeholder.com/150x100?text=ReviewImg2-1',
-            'https://via.placeholder.com/150x100?text=ReviewImg2-2',
-            'https://via.placeholder.com/150x100?text=ReviewImg2-3',
-          ],
-          extraImagesCount: 0,
-          roomType: '디럭스룸 (24~29층) (금연)',
-          text: '이번 오사카는 쟈가여행을 이용했는데 이번엔 조급 길게가기 싫어서 한 휴식 여행을 오게 되어서 어디에서 머무는지가 정말 많이 고민했어요. ㅠㅠ 그러던 중 주변 인프라가 맘에 들고 숙소 퀄리티도 위생이나 접근성이 불편함 없이 상급이라고 하는 글을 찾아 여기로 결정했어요. 가장 기능이 좋은 본관보다가 평이 좋길래 ㅠㅠ 참 잘한 결정 같아요. 침구도 괜찮았구요. 시설 불편함이 없었구요. 누가봐도 오사카의 주관하는 호텔 숙소와 모든 베드가 큰 차이도 없구요. 저희가 일본여행이 다...',
-        },
-      ]
-    };
-  
-    window.addEventListener('scroll', handleScroll);
-  });
-  
-  onUnmounted(() => {
-    window.removeEventListener('scroll', handleScroll);
-  });
-  </script>
-  
-  <style scoped>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
-  
-  .hotel-detail-page {
-    font-family: 'Noto Sans KR', sans-serif;
-    background-color: #F9F9F9;
-    color: #333; /* 기본 텍스트 색상 */
+
+    <main class="detail-main-content">
+      <div class="content-column">
+        <div class="summary-cards-wrapper">
+          <div class="summary-card rating-review-card">
+            <h3 class="card-title">
+              <div class="rating-badge-wrapper">
+                <span class="score-badge-yellow">{{ hotel.avgScore.toFixed(1) }}</span>
+                <span class="rating-text-yellow">{{ getRatingText(hotel.avgScore) }}</span>
+              </div>
+              <span class="review-count">({{ hotel.reviewCount.toLocaleString() }}명 평가)</span> 
+              <span class="arrow-icon">›</span>
+            </h3>
+
+            <!-- 최고 평점 리뷰 -->
+            <p class="review-quote-text" v-if="topRatedReview">
+              "{{ topRatedReview.content }}"
+            </p>
+            <p v-else class="review-quote-text">
+              "아직 리뷰가 없어요! 숙박하시고 리뷰를 작성해주세요!"
+            </p>
+          </div>
+
+          <div class="summary-card amenities-preview-card">
+            <h3 class="card-title">서비스 및 부대시설 <span class="arrow-icon">›</span></h3>
+            <div class="amenities-preview-list">
+              <span v-for="(service, index) in hotel.services" :key="index">
+                ✔️ {{ service.serviceName }}
+              </span>
+            </div>
+          </div>
+
+          <div class="summary-card location-preview-card">
+            <h3 class="card-title">위치 정보 <span class="arrow-icon">›</span></h3>
+            <div class="location-preview-content">
+              <span>📍 {{ hotel.address }}</span>
+              <a href="#" class="btn-map">지도보기</a>
+            </div>
+          </div>
+        </div>
+
+        <section id="rooms" class="detail-section">
+          <h2>객실 선택</h2>
+          <div class="room-list">
+            <div v-for="room in hotel.rooms" :key="room.rId" class="room-card">
+              <div class="room-image">
+                <img src="https://placehold.co/200x150?text=Room+Image" :alt="room.type">
+              </div>
+              <div class="room-info">
+                <h4>{{ room.type }}</h4>
+                <p class="room-spec">
+                  <span>🛏️ 최대 {{ room.people }}명</span>
+                  <span>✅ 재고: {{ room.count }}개</span>
+                  <span>⏰ 체크인: {{ room.checkinTime }}</span>
+                  <span>⏰ 체크아웃: {{ room.checkoutTime }}</span>
+                </p>
+                <a href="#" class="btn-more-info">상세 정보 ></a>
+              </div>
+              <div class="room-booking">
+                <strong class="room-price">{{ room.price.toLocaleString() }}원</strong>
+                <span>세금 및 봉사료 포함</span>
+                <button class="btn-book">예약하기</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="amenities" class="detail-section">
+          <h2>서비스 및 부대시설</h2>
+          <div class="amenities-grid">
+            <span v-for="(service, index) in hotel.services" :key="index">✔️ {{ service.serviceName }}</span>
+          </div>
+        </section>
+
+        <section id="hotel-info" class="detail-section">
+          <h2>숙소 이용 정보</h2>
+          <ul>
+            <li><strong>체크인 : {{ hotel.checkinTime }} | 체크아웃 : {{ hotel.checkoutTime }}</strong></li>
+            <li>정확한 체크인/체크아웃 시간은 숙소에 문의해주세요.</li>
+          </ul>
+        </section>
+
+        <section id="map-section" class="detail-section map-section">
+          <h2>위치</h2>
+          <div class="map-placeholder">
+            <div id="kakao" :style="{width: '100%', height: '400px'}"></div>
+            <!-- <img src="https://via.placeholder.com/800x400?text=Hotel+Location+Map" alt="호텔 위치 지도"> -->
+          </div>
+        </section>
+
+        <section id="nearby-attractions" class="detail-section nearby-attractions">
+          <h2>근처 문화재 및 랜드마크</h2>
+          <div class="attraction-list">
+            <div class="attraction-item">
+              <img src="https://via.placeholder.com/100x100?text=Attraction1" alt="문화재 이미지">
+              <div class="attraction-info">
+                <strong>경복궁</strong>
+                <p>차량 10분</p>
+              </div>
+            </div>
+            <div class="attraction-item">
+              <img src="https://via.placeholder.com/100x100?text=Attraction2" alt="문화재 이미지">
+              <div class="attraction-info">
+                <strong>남산타워</strong>
+                <p>차량 15분</p>
+              </div>
+            </div>
+            <div class="attraction-item">
+              <img src="https://via.placeholder.com/100x100?text=Attraction3" alt="문화재 이미지">
+              <div class="attraction-info">
+                <strong>명동</strong>
+                <p>도보 5분</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="reviews-section" class="detail-section reviews-section">
+          <h2>
+            리얼 리뷰 
+            <div class="rating-badge-wrapper">
+              <span class="score-badge-yellow">{{ hotel.avgScore.toFixed(1) }}</span>
+              <span class="review-count">({{ hotel.reviewCount.toLocaleString() }}개 평가)</span>
+            </div>
+            <a href="#" class="sort-reviews">▾ 정렬 및 필터</a>
+          </h2>
+
+          <div class="review-list">
+            <div v-for="review in hotel.reviews" :key="review.reviewId" class="review-card">
+              <div class="review-header">
+                <img src="https://placehold.co/40x40?text=U" alt="프로필" class="user-profile-img">
+                <div class="user-info">
+                  <strong class="user-nickname">사용자{{ review.pId }}</strong>
+                  <span class="review-date">2023.10.26</span> <!-- 실제 날짜가 있으면 review.date 사용 -->
+                </div>
+                <div class="review-rating">
+                  <span v-for="i in review.score" :key="i">★</span>
+                </div>
+              </div>
+
+              <p class="review-text">{{ review.content }}</p>
+
+              <div v-if="review.image" class="review-images">
+                <img :src="review.image" alt="리뷰 이미지">
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="sidebar-column">
+        <div class="sticky-sidebar">
+          <div class="coupon-box">
+            <h4><strong>회원가입 10%</strong> 할인 쿠폰</h4>
+            <button class="btn-download">⬇️ 쿠폰 받기</button>
+            <a href="#" class="coupon-dropdown">적용 가능한 쿠폰 혜택 ⌄</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+
+const isStickyNavVisible = ref(false);
+const stickyNavBarRef = ref(null);
+
+const hId = ref(route.params.hId);
+const checkIn = ref(null);
+const checkOut = ref(null);
+const rooms = ref(1);
+const persons = ref(2);
+
+const hotel = ref(null);
+
+const getRatingText = (rating) => {
+  if (rating >= 4.5) return '최고에요';
+  if (rating >= 4.0) return '아주 좋아요';
+  if (rating >= 3.0) return '괜찮아요';
+  return '보통이에요';
+};
+
+const handleScroll = () => {
+  const header = document.querySelector('.header-content-wrapper');
+  if (!header) return;
+  isStickyNavVisible.value = window.scrollY > header.offsetHeight;
+};
+
+const scrollToSection = (id) => {
+  const element = document.getElementById(id);
+  if (element) {
+    const offset = stickyNavBarRef.value ? stickyNavBarRef.value.offsetHeight : 0;
+    window.scrollTo({
+      top: element.offsetTop - offset - 20,
+      behavior: 'smooth',
+    });
+  }
+};
+
+const loadDetailQueryFromUrl = () => {
+  const query = route.query;
+  checkIn.value = query.startDate ? new Date(query.startDate) : null;
+  checkOut.value = query.endDate ? new Date(query.endDate) : null;
+  rooms.value = Number(query.rooms) || 1;
+  persons.value = Number(query.persons) || 2;
+  hId.value = route.params.id || null; // 여기서 가져와야 함
+  console.log('Loaded hId from route.params:', hId.value); // 확인용
+};
+
+const sendDetailSearchRequest = async () => {
+  // hId 값이 유효하지 않으면 요청을 보내지 않습니다.
+  if (!hId.value || isNaN(Number(hId.value))) {
+    console.error("Hotel ID is not valid. Cancelling API request.");
+    return; // 함수를 즉시 종료
   }
   
+  // 이 시점에서 hId는 항상 유효한 값(2)입니다.
+  const requestBody = {
+    hId: Number(hId.value),
+    startDate: checkIn.value ? checkIn.value.toISOString().split('T')[0] : null,
+    endDate: checkOut.value ? checkOut.value.toISOString().split('T')[0] : null,
+    numberOfRooms: Number(rooms.value),
+    numberOfPeople: Number(persons.value),
+  };
+
+  console.log('sending hId:', requestBody.hId);
+
+  try {
+    const response = await fetch('http://localhost:8888/api/detail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.ok) {
+      // 서버 응답이 성공(200 OK)일 경우
+      hotel.value = await response.json(); // 응답 본문을 JSON으로 파싱하여 hotel 변수에 저장
+      console.log('데이터 로드 성공:', hotel.value);
+    } else {
+      console.error('디테일 검색 실패:', response.status);
+      // 에러 처리 로직
+    }
+  } catch (error) {
+    console.error('API 호출 중 예외 발생:', error);
+  }
+};
+
+// 스크롤 이벤트 등록
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll);
+});
+
+// 스크롤 이벤트 해제
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
+
+const loadKakaoMap = () => {
+  return new Promise((resolve, reject) => {
+    if (window.kakao && window.kakao.maps) {
+      resolve(window.kakao);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=e77831e9ccd11f157f3055f8800d5602&autoload=false";
+    script.onload = () => {
+      if (window.kakao && window.kakao.maps) {
+        resolve(window.kakao);
+      } else {
+        reject(new Error("Kakao Maps SDK 로드 실패"));
+      }
+    };
+    script.onerror = () => reject(new Error("Kakao Maps SDK 스크립트 로드 실패"));
+    document.head.appendChild(script);
+  });
+};
+
+const initMap = async (hname) => {
+  try {
+    const kakao = await loadKakaoMap();
+    if (!kakao || !kakao.maps) {
+      console.error("Kakao Maps SDK가 정의되지 않았습니다.");
+      return;
+    }
+
+    kakao.maps.load(() => {
+      const container = document.getElementById('kakao');
+      if (!container) return;
+
+      const options = {
+        center: new kakao.maps.LatLng(33.450701, 126.570667),
+        level: 3,
+      };
+      const map = new kakao.maps.Map(container, options);
+
+      const markerPosition = new kakao.maps.LatLng(33.450701, 126.570667); // 마커 위치
+      const marker = new kakao.maps.Marker({
+        position: markerPosition,
+      });
+
+      // 마커를 지도에 표시
+      marker.setMap(map);
+
+      // (선택) 마커 클릭 시 정보창 표시
+      const infowindow = new kakao.maps.InfoWindow({
+        content: `<div style="padding:5px;">${hname}</div>`,
+      });
+
+      kakao.maps.event.addListener(marker, 'click', function() {
+        infowindow.open(map, marker);
+      });
+    });
+  } catch (e) {
+    console.error("Kakao Map 로드 실패:", e);
+  }
+};
+
+const topRatedReview = computed(() => {
+  if (!hotel.value || !hotel.value.reviews || hotel.value.reviews.length === 0) return null;
+  // score가 가장 높은 리뷰 찾기
+  return hotel.value.reviews.reduce((max, review) => {
+    return review.score > (max?.score || 0) ? review : max;
+  }, null);
+});
+
+// 호텔 데이터가 세팅되면 지도 초기화
+watch(hotel, async (newVal) => {
+  if (newVal) {
+    await nextTick();
+    initMap(newVal.hname);
+  }
+});
+
+watch(
+  () => route.query,
+  () => {
+    loadDetailQueryFromUrl();
+    sendDetailSearchRequest();
+  },
+  { immediate: true, deep: true }
+);
+
+
+</script>
+
+<style>
   /* --- 1. 상단 헤더 및 이미지 갤러리 --- */
   .detail-header {
     width: 100%;

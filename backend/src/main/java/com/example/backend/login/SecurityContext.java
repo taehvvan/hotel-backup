@@ -82,13 +82,20 @@ public class SecurityContext {
                         "/api/auth/**",
                         "/api/google/login",
                         "/api/google/callback",
-                        "/", "/api/search",
+                        "/api/detail",  
+                        "/", "/api/search", "/api/search/**",
+                        "/api/reservations/**",
+                        "/api/payments/**",
+                        "/payment-success",
+                        "/payment-fail",
+                        "/payment-callback",
                         "/hotel/**", "/landmark/**", "/heritage/**",
                         "/terms", "/privacy",
                         "/accommodations", "/landmarks", "/heritage",
                         "/checkout-guest",
                         "/images/**", "/css/**", "/js/**", "/error",
-                        "/api/request-reset-password", "/api/verify-code-for-password-reset"
+                        "/api/request-reset-password", "/api/verify-code-for-password-reset",
+                        "/api/reset-password"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
                 .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist").hasRole("USER")

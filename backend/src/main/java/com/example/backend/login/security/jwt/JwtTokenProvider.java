@@ -89,6 +89,18 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    public Integer getUserIdFromToken(String token) {
+
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        // Assuming user ID is stored as "id" in the JWT payload
+        return claims.get("u_id", Integer.class);
+    
+    }
+
     // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {

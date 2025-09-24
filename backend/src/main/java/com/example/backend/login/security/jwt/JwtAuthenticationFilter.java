@@ -32,11 +32,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 로그인, 회원가입 요청은 JWT 검사하지 않음
         if (path.startsWith("/api/auth/login") || path.startsWith("/api/register") ||
             path.startsWith("/api/send-code") || path.startsWith("/api/verify-code") || 
-            path.startsWith("/api/check-email") || path.startsWith("/api/search") || 
+            path.startsWith("/api/check-email") || path.startsWith("/api/search") || path.startsWith("/api/search/**") || 
             path.startsWith("/api/detail") || path.startsWith("/api/kakao/login") ||
             path.startsWith("/api/kakao/callback") || path.startsWith("/api/google/login") ||
             path.startsWith("/api/google/callback") || path.startsWith("/api/request-reset-password") || 
-            path.startsWith("/api/verify-code-for-password-reset")) {
+            path.startsWith("/api/verify-code-for-password-reset") || path.startsWith("/api/reset-password") ||
+            path.startsWith("/api/reservations") || path.startsWith("/api/payments/complete") ||
+            path.startsWith("/images/") || path.startsWith("/css/") || path.startsWith("/js/")) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -13,6 +13,7 @@ import java.util.List;
 public class Hotel {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "h_id")
     private Long hId;
 
@@ -28,22 +29,34 @@ public class Hotel {
     @Column(name = "address", nullable = false)
     private String address;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "star")
     private Integer star;
 
     @Column(name = "active")
     private Boolean active = true;
 
-    @Column(name = "info")
+    @Column(name = "info", columnDefinition = "TEXT")
     private String info;
+
+    @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<HotelImage> images = new ArrayList<>();
+
+    public List<HotelImage> getImages() { return images; }
+    public void setImages(List<HotelImage> images) { this.images = images; }
 
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Room> rooms = new ArrayList<>();
 
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> reviews;
+    private List<Review> reviews = new ArrayList<>();;
 
     @ManyToMany
     @JoinTable(name = "hotel_service", joinColumns = @JoinColumn(name = "h_id"), inverseJoinColumns = @JoinColumn(name = "service_id"))
-    private List<ServiceEntity> services;
+    private List<ServiceEntity> services = new ArrayList<>();;
 }

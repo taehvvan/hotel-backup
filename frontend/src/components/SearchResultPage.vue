@@ -60,16 +60,14 @@
           <h5>평점</h5>
           <div class="rating-filter-card">
             <div class="rating-filter-wrapper">
-              <!-- 0점 버튼: 모든 평점 포함 -->
               <button
-          class="zero-btn"
-          @click="rating = 0"
-          :class="{ active: rating === 0 }"
-        >
-          전체
-        </button>
+                class="zero-btn"
+                @click="rating = 0"
+                :class="{ active: rating === 0 }"
+              >
+                전체
+              </button>
 
-              <!-- 1~5점 버튼 -->
               <div class="rating-filter">
                 <button
                   v-for="star in 5"
@@ -112,10 +110,14 @@
             <router-link
               v-for="item in sortedResults"
               :key="item.hid"
-              :to="{ name: 'HotelDetail', params: { id: item.hid } }"
+              :to="{ 
+                name: 'HotelDetail', 
+                params: { id: item.hid }, 
+                query: $route.query
+              }"
               class="result-card"
             >
-              <div class="result-card-inner">
+              <div class="result-card-inner"> 
                 <div class="image-wrapper">
                   <img :src="item.image" :alt="item.hname">
                 </div>
@@ -292,7 +294,13 @@ const sendSearchRequest = async () => {
     }
 
     if (response.ok) {
-      searchResults.value = await response.json();
+      const data = await response.json();
+
+      // ✅ 이미지 URL 동적 추가
+      searchResults.value = data.map(item => ({
+        ...item,
+        image: `http://localhost:8888/images/${item.type}/${item.hid}.jpg`
+      }));
     } else {
       console.error('검색 실패:', response.status);
       searchResults.value = [];
@@ -312,22 +320,11 @@ watch(() => route.query, () => {
 // 편의시설 + 유형 + 가격 + 평점 필터링
 const filteredResults = computed(() => {
   return searchResults.value.filter(item => {
-    // 유형 필터
     if (selectedTypes.value.length && !selectedTypes.value.includes(item.type)) return false;
-
-    // 가격 필터
     if (item.minPrice < priceRange.value.min || item.minPrice > priceRange.value.max) return false;
-
-    // 평점 필터
-    // 평점이 없으면 필터 무시 (항상 통과)
     if (item.avgScore != null && item.avgScore < rating.value) return false;
-
-    // 편의시설 필터
     const itemServices = item.services?.map(s => s.serviceName) || [];
-    if (selectedAmenities.value.length && !selectedAmenities.value.every(a => itemServices.includes(a))) {
-      return false;
-    }
-
+    if (selectedAmenities.value.length && !selectedAmenities.value.every(a => itemServices.includes(a))) return false;
     return true;
   });
 });
@@ -409,7 +406,7 @@ body {
 .zero-btn.active {  font-weight: 700;  color: #007bff;  border-color: #007bff;}
 .rating-filter-card span { font-weight: 500;  color: #555;  flex: 1;  text-align: center; /* 중앙정렬 */}
 .price-range-slider { position: relative; height: 20px; margin-bottom: 15px; }
-.price-range-slider input[type=range] { position: absolute; width: 100%; -webkit-appearance: none; background: transparent; pointer-events: none; }
+.price-range-slider input[type=range] { position: absolute; width: 100%; background: transparent; pointer-events: none; }
 .price-range-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: all; width: 22px; height: 22px; border-radius: 50%; background: #007bff; border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.2); cursor: pointer; }
 .price-range-slider .slider-track { position: absolute; width: 100%; height: 6px; background-color: #E0E0E0; top: 7px; border-radius: 3px; }
 .price-display { display: flex; justify-content: space-between; color: #333; font-weight: 600; margin-top: 10px; font-size: 1rem; }
