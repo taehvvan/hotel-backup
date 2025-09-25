@@ -213,7 +213,7 @@ const handleClickOutside = (e) => {
     closeAllPopups();
   }
 };
-onMounted(() => document.addEventListener('click', handleClickOutside, true));
+onMounted(() => document.addEventListener('click', handleClickOutside));
 onUnmounted(() => document.removeEventListener('click', handleClickOutside, true));
 
 /* ===== 위치 계산 유틸 (fixed 기준) ===== */
@@ -432,6 +432,15 @@ const search = async () => {
     numberOfRooms: rooms.value,
     numberOfPeople: persons.value,
   };
+  
+  // --- 🕵️‍♂️ 디버깅 코드 위치 (확인용) ---
+  console.log("검색 시작! 다음 쿼리로 이동합니다:", {
+    region: requestBody.region,
+    startDate: requestBody.startDate,
+    endDate: requestBody.endDate,
+    rooms: requestBody.numberOfRooms,
+    persons: requestBody.numberOfPeople,
+  });
 
   router.push({
     path: '/search',

@@ -108,7 +108,9 @@
               <strong>₩ {{ finalPrice.toLocaleString() }}</strong>
             </div>
           </div>
-          <button class="btn-payment" @click="handlePayment">결제하기</button>
+          <button class="btn-payment" @click="handlePayment" :disabled="isLoading">
+            {{ isLoading ? '정보 로딩 중...' : '결제하기' }}
+          </button>
         </div>
       </aside>
     </div>
@@ -134,6 +136,8 @@ const router = useRouter();
 
 const bookingStore = useBookingStore()
 
+const isLoading = ref(true);
+
 console.log('검색 조건:', bookingStore.search)
 console.log('호텔 정보:', bookingStore.hotel)
 console.log('선택 객실:', bookingStore.room)
@@ -147,15 +151,6 @@ watch([savePhoneNumber, phoneNumber], ([saveChecked, number]) => {
     localStorage.setItem('savedPhoneNumber', number)
   } else {
     localStorage.removeItem('savedPhoneNumber')
-  }
-})
-
-// 페이지 로드 시 localStorage에서 기존 번호 불러오기
-onMounted(() => {
-  const savedNumber = localStorage.getItem('savedPhoneNumber')
-  if (savedNumber) {
-    phoneNumber.value = savedNumber
-    savePhoneNumber.value = true
   }
 })
 
@@ -181,7 +176,25 @@ const finalPrice = computed(() => basePrice.value - couponDiscount.value + taxes
 const tossPayments = ref(null);
 const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
 
-onMounted(() => {
+onMounted(async () => {
+
+  // --- ✅ 데이터 로딩 로직 추가 ---
+  try {
+    // bookingStore에 방 정보가 없다면 (새로고침 등)
+    if (!bookingStore.room) {
+      // store에 저장된 ID를 기반으로 상세 정보를 다시 불러오는 액션을 호출합니다.
+      // 이 fetchBookingDetails 액션은 stores/booking.js 안에 직접 만들어야 합니다.
+      await bookingStore.fetchBookingDetails(); 
+    }
+  } catch (error) {
+    console.error("예약 정보를 불러오는 데 실패했습니다:", error);
+    alert("예약 정보를 불러오지 못했습니다. 이전 페이지로 돌아갑니다.");
+    router.go(-1); // 이전 페이지로 돌려보내기
+  } finally {
+    isLoading.value = false; // 데이터 로딩 완료 (성공/실패 모두)
+  }
+  // ---------------------------
+
   const script = document.createElement('script');
   script.src = "https://js.tosspayments.com/v1";
   script.onload = () => {
@@ -197,6 +210,12 @@ onMounted(() => {
     { id: 'coupon1', name: '신규 회원 10% 할인 쿠폰', type: 'percent', discount: 10, expiryDate: '2025-12-31' },
     { id: 'coupon2', name: '가을맞이 20,000원 할인', type: 'fixed', discount: 20000, expiryDate: '2025-10-31' },
   ];
+
+  const savedNumber = localStorage.getItem('savedPhoneNumber')
+  if (savedNumber) {
+    phoneNumber.value = savedNumber
+    savePhoneNumber.value = true
+  }
 });
 
 const goBack = () => {
@@ -215,6 +234,13 @@ const formatDiscount = (coupon) => {
 };
 
 const handlePayment = async () => {
+if (isLoading.value) return;
+
+// room 객체나 room.rid가 유효한지 한번 더 확인 (최후의 안전장치)
+if (!bookingStore.room || !bookingStore.room.rid) {
+  return alert('예약 정보가 올바르지 않습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+}
+
 if (!tossPayments.value) return alert('결제 모듈이 준비되지 않았습니다.');
 
 const room = bookingStore.room;
@@ -225,6 +251,9 @@ const reservationId = bookingStore.reservationId;
 if (!room || !hotel || !search) {
   return alert('예약 정보가 올바르지 않습니다.');
 }
+
+// --- 🕵️‍♂️ 디버깅 코드 추가 ---
+console.log("bookingStore.room 객체의 실제 내용:", room);
 
 // localStorage에 최소한의 정보 저장
 localStorage.setItem('reservationId', reservationId);

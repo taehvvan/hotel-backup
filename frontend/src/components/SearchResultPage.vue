@@ -4,14 +4,12 @@
     <SearchBar />
 
     <div class="search-result-container">
-      <!-- 필터 컬럼 -->
       <div class="filters-column">
         <div class="filter-header">
           <h4>필터</h4>
           <button class="btn-reset" @click="resetFilters">초기화</button>
         </div>
 
-        <!-- 숙소 유형 -->
         <div class="filter-group">
           <h5>숙소 유형</h5>
           <div class="type-button-group">
@@ -27,7 +25,6 @@
           </div>
         </div>
 
-        <!-- 가격 범위 -->
         <div class="filter-group">
           <h5>가격 (1박 기준)</h5>
           <div class="price-range-slider">
@@ -55,7 +52,6 @@
           </div>
         </div>
 
-        <!-- 평점 -->
         <div class="filter-group">
           <h5>평점</h5>
           <div class="rating-filter-card">
@@ -81,7 +77,6 @@
           </div>
         </div>
 
-        <!-- 편의시설 -->
         <div class="filter-group">
           <h5>편의시설</h5>
           <div class="checkbox-group">
@@ -93,7 +88,6 @@
         </div>
       </div>
 
-      <!-- 검색 결과 -->
       <div class="results-main-panel">
         <div class="search-summary">
           <h2><strong>'{{ destination }}'</strong> 검색 결과</h2>
@@ -109,10 +103,10 @@
           <div v-if="sortedResults.length > 0">
             <router-link
               v-for="item in sortedResults"
-              :key="item.hid"
+              :key="item.hId"
               :to="{ 
                 name: 'HotelDetail', 
-                params: { id: item.hid }, 
+                params: { id: item.hId }, 
                 query: $route.query
               }"
               class="result-card"
@@ -299,7 +293,8 @@ const sendSearchRequest = async () => {
       // ✅ 이미지 URL 동적 추가
       searchResults.value = data.map(item => ({
         ...item,
-        image: `http://localhost:8888/images/${item.type}/${item.hid}.jpg`
+        // [수정 2] 이미지 URL 생성 시 item.hId 사용
+        image: `http://localhost:8888/images/${item.type}/${item.hId}.jpg`
       }));
     } else {
       console.error('검색 실패:', response.status);
@@ -347,19 +342,19 @@ const getRatingText = (score) => {
   return '보통이에요';
 };
 </script>
-  
+ 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
-  
+ 
 body {
   font-family: 'Noto Sans KR', sans-serif;
   color: #333;
   background-color: #FDFBF8;
 }
-  
+ 
 .page-container { padding-bottom: 60px; }
 .content-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-  
+ 
 .search-section { padding: 40px 0; background-color: #fff; border-bottom: 1px solid #e0e0e0; }
 .main-search-bar { display: flex; align-items: center; background-color: #f5f6f7; border: 1px solid #E5E5E5; border-radius: 12px; height: 72px; box-shadow: 0 8px 16px rgba(0,0,0,0.05); max-width: 900px; margin: 0 auto;}
 .search-input-group { display: flex; align-items: center; flex: 1 1 0; height: 100%; padding: 0 20px; cursor: pointer; gap: 10px; }
@@ -371,13 +366,13 @@ body {
 .nights-badge { background-color: #e0f4ff; color: #007bff; border-radius: 20px; padding: 4px 10px; margin-left: auto; font-size: 0.8rem; }
 .search-button { background-color: #007bff; color: #fff; border: none; border-radius: 8px; height: 56px; display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 0 24px; cursor: pointer; margin: 0 8px; transition: background-color 0.2s ease; }
 .search-button:hover { background-color: #0056b3; }
-  
+ 
 .type-nav { background-color: #fff; border-bottom: 1px solid #eee; margin-bottom: 30px; }
 .type-nav .content-wrapper { display: flex; gap: 5px; }
 .type-nav button { flex: 1; padding: 18px 20px; border: none; border-bottom: 3px solid transparent; background-color: #fff; font-size: 1.1rem; font-weight: 600; color: #888; cursor: pointer; transition: all 0.2s ease-in-out; text-align: center; }
 .type-nav button:hover { color: #333; }
 .type-nav button.active { color: #007bff; border-bottom: 3px solid #007bff; }
-  
+ 
 .search-result-container { display: grid; grid-template-columns: 280px 1fr; gap: 40px; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
 .results-main-panel { min-width: 0; }
 .search-summary { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; }
@@ -385,7 +380,7 @@ body {
 .search-summary h2 strong { color: #007bff; }
 .sort-options select { padding: 10px 15px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; color: #555; background-color: #fff; cursor: pointer; }
 .results-list { display: flex; flex-direction: column; gap: 0; }
-  
+ 
 .filters-column { height: fit-content; position: sticky; top: 100px; }
 .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
 .filter-header h4 { margin: 0; font-size: 1.3rem; font-weight: 700; color: #222; }
@@ -410,7 +405,7 @@ body {
 .price-range-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: all; width: 22px; height: 22px; border-radius: 50%; background: #007bff; border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.2); cursor: pointer; }
 .price-range-slider .slider-track { position: absolute; width: 100%; height: 6px; background-color: #E0E0E0; top: 7px; border-radius: 3px; }
 .price-display { display: flex; justify-content: space-between; color: #333; font-weight: 600; margin-top: 10px; font-size: 1rem; }
-  
+ 
 .result-card { border-bottom: 1px solid #f0f0f0; padding: 20px 0; transition: background-color 0.2s; cursor: pointer; display: block; text-decoration: none; color: inherit; }
 .results-list .result-card:last-child { border-bottom: none; }
 .result-card:hover { background-color: #f9f9f9; }
@@ -433,21 +428,21 @@ h3 { margin: 5px 0; font-size: 1.4rem; font-weight: 700; color: #222; }
 .hotel-grade-stars { color: #E91E63; }
 .amenities strong { color: #333; }
 .location-icon { margin-right: 5px; color: #777; }
-  
+ 
 .price-wrapper { width: 200px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; position: relative; }
 .like-button { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #aaa; padding: 0; transition: all 0.2s ease; }
 .like-button:hover { color: #E53935; transform: scale(1.1); }
 .final-price-box { margin-top: auto; }
 .final-price-box .price-label { font-size: 0.95rem; font-weight: 500; color: #555; }
 .final-price-box strong { font-size: 1.7rem; font-weight: 800; color: #E53935; white-space: nowrap; min-width: 100%; }
-  
+ 
 .calendar-popup, .guest-selector-popup { position: absolute; background-color: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #E0E0E0; z-index: 1000; }
 .guest-selector-popup { width: 320px; padding: 25px; }
 .guest-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .counter { display: flex; align-items: center; gap: 15px; }
 .counter button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #E0E0E0; background-color: #fff; font-size: 1.6rem; color: #888; cursor: pointer; }
 .confirm-btn { background-color: #007bff; color: #fff; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; }
-  
+ 
 .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 50px; }
 .pagination a { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: #333; font-weight: 500; }
 .pagination a.active { background-color: #007bff; color: #fff; border-color: #007bff; font-weight: 700; }
