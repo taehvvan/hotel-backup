@@ -1,13 +1,9 @@
 package com.example.backend.reservation;
 
-import java.util.Optional;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.register.UserEntity;
-import com.example.backend.register.UserRepository;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -18,39 +14,39 @@ public class PaymentService {
     private final ReservationRepository reservationRepository;
 
     @Transactional
-    public Payment completePayment(UserEntity user, Integer rId, Integer reId, String payMethod, String phone) {
-        System.out.println("디버깅 - rId: " + rId + ", reId: " + reId); // 로그 추가
+    // ✅ rId 파라미터를 제거하여 로직을 단순화합니다.
+    public Payment completePayment(UserEntity user, Integer reId, String payMethod, String phone) {
+        System.out.println("결제 완료 처리 시작 - reId: " + reId);
 
-        if (rId == null) throw new IllegalArgumentException("rId가 null입니다.");
-        if (reId == null) throw new IllegalArgumentException("reId가 null입니다.");
-
-
+        if (reId == null) {
+            throw new IllegalArgumentException("reId가 null입니다.");
+        }
         
-        // 결제 정보 생성
+        // 1. 전달받은 reId로 Reservation 정보를 조회합니다.
+        Reservation reservation = reservationRepository.findById(reId)
+                .orElseThrow(() -> new RuntimeException("결제할 예약 정보를 찾을 수 없습니다. ID: " + reId));
+
+        // 2. 결제 정보 생성
         Payment payment = new Payment();
-        payment.setUser(user); // 회원이면 UserEntity, 비회원이면 null
-        payment.setRId(rId);
-        payment.setReId(reId);
+        payment.setUser(user);
+        payment.setReservation(reservation); // Reservation 객체 설정
+        payment.setRoom(reservation.getRoom()); // Reservation 객체에서 Room 정보를 가져와 설정
         payment.setPayMethod(payMethod);
         payment.setPhone(phone);
 
         paymentRepository.save(payment);
 
-        // 예약 상태 변경
-        Reservation reservation = reservationRepository.findById(reId)
-                .orElseThrow(() -> new RuntimeException("예약 정보를 찾을 수 없습니다."));
+        // 3. 예약 상태를 "결제 대기"에서 "예약 완료"로 변경
         reservation.setStatus("예약 완료");
         reservationRepository.save(reservation);
 
+        System.out.println("결제 및 예약 상태 변경 완료 - pId: " + payment.getPId());
         return payment;
     }
 
-    // 비회원 예약 확인
     public ReservationResponseDTO findReservationForGuest(Integer pId, String phone) {
         return paymentRepository.findBypIdAndPhone(pId, phone)
-                .map(payment -> reservationRepository.findById(payment.getReId())
-                        .map(ReservationResponseDTO::new)
-                        .orElse(null))
+                .map(payment -> new ReservationResponseDTO(payment.getReservation()))
                 .orElse(null);
     }
 }

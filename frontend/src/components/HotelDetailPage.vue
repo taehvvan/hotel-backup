@@ -443,16 +443,25 @@ const goToCheckout = async (room) => {
       },
     });
 
-    const reId = reservationResponse.data.reId;
-    if (!reId) {
-        throw new Error("서버로부터 예약 ID를 받지 못했습니다.");
+    // ✅ 백엔드 DTO 필드명(reservationId)과 일치시킵니다.
+    const reservationId = reservationResponse.data.reservationId; 
+    if (!reservationId) {
+      // 오류 메시지도 더 명확하게 변경 (디버깅용)
+      console.error("응답 데이터:", reservationResponse.data); 
+      throw new Error("서버 응답에서 reservationId를 찾을 수 없습니다.");
     }
 
-    console.log('생성된 예약 ID:', reId);
+    console.log('생성된 예약 ID:', reservationId);
 
     // 3. Pinia 스토어에 예약 ID를 저장합니다.
     // 이렇게 하면 다음 페이지(/checkout)에서 이 ID를 사용할 수 있습니다.
-    bookingStore.setReservationId(reId);
+    bookingStore.setReservationId(reservationId);
+
+    bookingStore.setBooking(
+      bookingStore.search,
+      reservationResponse.data.hotel,
+      reservationResponse.data.room
+    );
 
     // 결제 후 체크아웃 페이지로 이동
     router.push('/checkout');

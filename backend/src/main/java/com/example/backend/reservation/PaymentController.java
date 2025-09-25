@@ -23,11 +23,10 @@ public class PaymentController {
 
         UserEntity user = principalDetails != null ? principalDetails.getUser() : null;
 
-        System.out.println("디버깅 - rId: " + dto.getRId() + ", reId: " + dto.getReId()); // 로그 확인
+        System.out.println("디버깅 - reId: " + dto.getReId()); // 로그 확인
 
         Payment payment = paymentService.completePayment(
                 user,
-                dto.getRId(),
                 dto.getReId(),
                 dto.getPayMethod(),
                 dto.getPhone()

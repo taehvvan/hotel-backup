@@ -1,22 +1,10 @@
 package com.example.backend.reservation;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
-import com.example.backend.login.security.PrincipalDetails; 
-import com.example.backend.reservation.ReservationResponseDTO;
-
+import org.springframework.web.bind.annotation.*;
+import com.example.backend.login.security.PrincipalDetails;
 import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,38 +15,37 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @PostMapping
-    public ResponseEntity<Reservation> createReservation(@RequestBody ReservationRequest request) {
+    // ✅ ResponseEntity의 반환 타입을 ReservationPrepareResponse 로 변경
+    public ResponseEntity<ReservationPrepareResponse> prepareReservation(@RequestBody ReservationRequest request) {
 
-        System.out.println("---------- [BACKEND-CONTROLLER] 요청 수신 ----------");
+        System.out.println("---------- [BACKEND-CONTROLLER] 예약 준비 요청 수신 ----------");
         System.out.println("수신된 ReservationRequest DTO: " + request);
  
-        Reservation reservation = reservationService.createReservation(request);
-        return ResponseEntity.ok(reservation);
+        // ✅ 수정된 서비스 메소드를 호출합니다.
+        ReservationPrepareResponse response = reservationService.createReservation(request);
+        
+        // ✅ 프론트엔드가 사용하기 편한 형식의 DTO를 반환합니다.
+        return ResponseEntity.ok(response);
     }
 
-    // 회원 예약 조회
+    // ... (다른 GET 메소드들은 기존과 동일) ...
     @GetMapping
     public ResponseEntity<List<ReservationResponseDTO>> getUserReservations(
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
         
         if (principalDetails == null) {
-            // 인증 정보가 없는 경우 401 Unauthorized 응답
             return ResponseEntity.status(401).build();
         }
         
-        Integer userId = principalDetails.getUser().getId(); // PrincipalDetails에서 사용자 ID 가져오기
+        Integer userId = principalDetails.getUser().getId();
         List<ReservationResponseDTO> reservations = reservationService.findMyReservations(userId);
         
         return ResponseEntity.ok(reservations);
     }
 
-    // 비회원 예약 조회 (결제번호 + 전화번호)
     @GetMapping("/guest")
     public ResponseEntity<ReservationResponseDTO> getGuestReservation(
-            @RequestParam Integer pId,        
-            @RequestParam String phone
-            ) {
-
+            @RequestParam Integer pId, @RequestParam String phone) {
         ReservationResponseDTO reservation = reservationService.findGuestReservation(pId, phone);
         if (reservation == null) {
             return ResponseEntity.notFound().build();
@@ -66,14 +53,13 @@ public class ReservationController {
         return ResponseEntity.ok(reservation);
     }
 
-    // 비회원 예약 상세 조회
     @GetMapping("/guest/detail")
     public ResponseEntity<ReservationResponseDTO> getGuestReservationDetail(
             @RequestParam Integer reservationId) {
-
         Reservation reservation = reservationService.findReservationById(reservationId);
-        if (reservation == null) return ResponseEntity.notFound().build();
-
+        if (reservation == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(new ReservationResponseDTO(reservation));
     }
 }

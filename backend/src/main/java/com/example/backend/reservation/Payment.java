@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import com.example.backend.register.UserEntity;
 
+import com.example.backend.search.Hotel;
+import com.example.backend.search.Room;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -31,11 +33,13 @@ public class Payment {
     @JoinColumn(name = "u_id")
     private UserEntity user;  // 회원이면 매핑, 비회원이면 null
 
+    @ManyToOne
     @JoinColumn(name = "r_id")
-    private Integer rId;
+    private Room room;
 
+    @ManyToOne
     @JoinColumn(name = "re_id")
-    private Integer reId;
+    private Reservation reservation;
 
     @Column(name = "pay_method")
     private String payMethod;
