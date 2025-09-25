@@ -11,6 +11,17 @@
         </div>
 
         <div class="filter-group">
+          <h5>호텔 이름 / 주소 검색</h5>
+          <input
+            type="text"
+            v-model="hotelNameSearchQuery"
+            class="hotel-search-input"
+            placeholder="호텔 이름 또는 주소를 입력하세요"
+          />
+        </div>
+
+        <!-- 숙소 유형 -->
+        <div class="filter-group">
           <h5>숙소 유형</h5>
           <div class="type-button-group">
             <button
@@ -28,7 +39,7 @@
         <div class="filter-group">
           <h5>가격 (1박 기준)</h5>
           <div class="price-range-slider">
-            <div class="slider-track"></div>
+            <div class="slider-track" ref="sliderTrack"></div>
             <input
               type="range"
               class="price-slider-min"
@@ -156,7 +167,12 @@
                   </div>
                 </div>
                 <div class="price-wrapper">
-                  <button class="like-button" @click.prevent>♡</button>
+                  <button 
+                    class="like-button" 
+                    @click.prevent="toggleFavorite(item.hid)"
+                  >
+                    {{ isFavorite(item.hid) ? '❤️' : '♡' }}
+                  </button>
                   <div class="final-price-box">
                     <span class="price-label">1박 최저가</span><br>
                     <strong>{{ item.minPrice.toLocaleString() ?? 0 }}원</strong>
@@ -186,11 +202,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import axios from 'axios';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import SearchBar from './SearchBar.vue';
 
+const router = useRouter();
 const route = useRoute();
+const isLoggedIn = ref(!!localStorage.getItem("jwtToken"));
+const wishlistItems = ref([]);
 
 const destination = ref('');
 const checkIn = ref(null);
@@ -201,6 +221,8 @@ const sortOption = ref('priceAsc');
 const rating = ref(0.0);
 
 const searchResults = ref([]);
+
+const hotelNameSearchQuery = ref('');
 
 // 필터 상태
 const types = ['호텔', '모텔', '한옥', '펜션/풀빌라', '게스트하우스/비앤비', '리조트'];
@@ -218,7 +240,7 @@ const amenities = ref([
   { id: 9, name: '반려동물', selected: false },
 ]);
 
-const priceRange = ref({ min: 0, max: 150000 });
+const priceRange = ref({ min: 0, max: 200000 });
 
 watch(() => priceRange.value.min, (newVal) => {
   if (newVal > priceRange.value.max) {
@@ -250,6 +272,7 @@ const resetFilters = () => {
   amenities.value.forEach(a => a.selected = false);
   priceRange.value = { min: 0, max: 150000 };
   rating.value = 0.0;
+  hotelNameSearchQuery.value = '';
 };
 
 // URL 쿼리 로드
@@ -261,6 +284,30 @@ const loadSearchQueryFromUrl = () => {
   rooms.value = Number(query.rooms) || 1;
   persons.value = Number(query.persons) || 2;
 };
+
+const sliderTrack = ref(null);
+const sliderMin = 0;
+const sliderMax = 1000000;
+
+const updateSliderTrack = () => {
+  const minPercent = ((priceRange.value.min - sliderMin) / (sliderMax - sliderMin)) * 100;
+  const maxPercent = ((priceRange.value.max - sliderMin) / (sliderMax - sliderMin)) * 100;
+
+  if (sliderTrack.value) {
+    sliderTrack.value.style.background = `linear-gradient(
+      to right,
+      #E0E0E0 0%,
+      #E0E0E0 ${minPercent.toFixed(2)}%,
+      #007bff ${minPercent.toFixed(2)}%,
+      #007bff ${maxPercent.toFixed(2)}%,
+      #E0E0E0 ${maxPercent.toFixed(2)}%,
+      #E0E0E0 100%
+    )`;
+  }
+};
+
+watch(priceRange, updateSliderTrack, { deep: true });
+onMounted(updateSliderTrack);
 
 // 검색 API 호출
 const sendSearchRequest = async () => {
@@ -276,7 +323,7 @@ const sendSearchRequest = async () => {
   };
 
   try {
-    const response = await fetch('http://localhost:8888/api/search', {
+    const response = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -314,7 +361,20 @@ watch(() => route.query, () => {
 
 // 편의시설 + 유형 + 가격 + 평점 필터링
 const filteredResults = computed(() => {
+  const query = hotelNameSearchQuery.value.toLowerCase();
+
   return searchResults.value.filter(item => {
+    // 검색어 필터
+    if (query.length > 0) {
+      const matchesName = item.hname.toLowerCase().includes(query);
+      const matchesAddress = item.address.toLowerCase().includes(query);
+      
+      if (!(matchesName || matchesAddress)) {
+        return false;
+      }
+    }
+
+    // 유형 필터
     if (selectedTypes.value.length && !selectedTypes.value.includes(item.type)) return false;
     if (item.minPrice < priceRange.value.min || item.minPrice > priceRange.value.max) return false;
     if (item.avgScore != null && item.avgScore < rating.value) return false;
@@ -341,6 +401,82 @@ const getRatingText = (score) => {
   if (score >= 3.0) return '괜찮아요';
   return '보통이에요';
 };
+
+const addToWishlist = async (hid) => {
+  try {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) throw new Error("JWT 토큰이 없습니다.");
+
+    const response = await axios.post(
+      `/api/wishlist/${hid}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // 서버에서 반환되는 데이터가 hid 없으면 직접 추가
+    wishlistItems.value.push({ hid, ...response.data });
+  } catch (error) {
+    console.error("찜 추가 실패", error);
+    alert("찜 추가에 실패했습니다.");
+  }
+};
+
+const removeFromWishlist = async (hid) => {
+  if (!hid) return;
+  try {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) throw new Error("JWT 토큰이 없습니다.");
+
+    await axios.delete(`/api/wishlist/${hid}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    wishlistItems.value = wishlistItems.value.filter(item => item.hid !== hid);
+  } catch (error) {
+    console.error("찜 해제 실패", error);
+    alert("찜 해제에 실패했습니다.");
+  }
+};
+
+const isFavorite = (hid) => wishlistItems.value.some(item => item.hid === hid);
+
+const toggleFavorite = async (hid) => {
+  if (!isLoggedIn.value) {
+    router.push({ name: "Login" });
+    return;
+  }
+
+  if (isFavorite(hid)) {
+    await removeFromWishlist(hid);
+  } else {
+    await addToWishlist(hid);
+  }
+};
+
+onMounted(async () => {
+  if (!isLoggedIn.value) return;
+
+  try {
+    const token = localStorage.getItem("jwtToken");
+    console.log("Token : ", token);
+    const response = await axios.get('/api/wishlist', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // 서버에서 반환되는 리스트를 그대로 반영
+    // 각 항목에 hid가 있어야 isFavorite에서 인식 가능
+    wishlistItems.value = response.data.map(item => ({
+      hid: item.hid,
+      ...item
+    }));
+  } catch (error) {
+    const token = localStorage.getItem("jwtToken");
+    console.log("Token : ", token);
+    console.error("찜 목록 불러오기 실패", error);
+    
+  }
+});
+
 </script>
  
 <style scoped>
@@ -450,4 +586,13 @@ h3 { margin: 5px 0; font-size: 1.4rem; font-weight: 700; color: #222; }
 .checkbox-group {  display: flex;  flex-wrap: wrap;  gap: 10px 20px; /* 줄 간격 10px, 항목 간격 20px */}
 .checkbox-group label {  width: calc(50% - 10px); /* 2줄 정렬: 전체 너비의 절반 */  display: flex;  align-items: center;}
 .checkbox-label input {  margin-right: 8px; /* 체크박스와 텍스트 사이 간격 */}
+.hotel-search-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box; /* 패딩이 너비에 포함되도록 설정 */
+  margin-top: 5px; /* 필터 헤더와의 간격 조정 */
+}
 </style>

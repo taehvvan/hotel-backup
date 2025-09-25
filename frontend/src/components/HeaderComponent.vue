@@ -1,3 +1,4 @@
+
 <template>
   <header class="main-header">
     <div class="content-wrapper">
@@ -16,7 +17,7 @@
         <div class="nav-divider"></div>
 
         <template v-if="authStore.isLoggedIn">
-          <span class="nav-link">안녕하세요, {{ authStore.userName }}님</span>
+          <router-link to="/mypage" class="nav-link">안녕하세요, {{ authStore.userName }}님</router-link>
           <button class="nav-link" @click="handleLogout">로그아웃</button>
         </template>
         <template v-else>

@@ -1,5 +1,10 @@
 {
   "java.jdt.ls.vmargs": "-javaagent:C:/Users/woogi/.m2/repository/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar",
+<<<<<<< HEAD
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.compile.nullAnalysis.mode": "automatic"
 } 
+=======
+  "java.configuration.updateBuildConfiguration": "automatic"
+} 
+>>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792

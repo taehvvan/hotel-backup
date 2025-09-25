@@ -74,7 +74,7 @@
       <section class="landmark-section">
         <div class="content-wrapper">
           <div class="section-header">
-            <h3>인기 랜드마크 둘러보기</h3>
+            <h3><router-link to="/landmarks" class="more-link">인기 랜드마크 둘러보기</router-link></h3>
             <router-link to="/landmarks" class="more-link">전체보기</router-link>
           </div>
           <swiper

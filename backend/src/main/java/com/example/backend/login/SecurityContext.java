@@ -1,5 +1,6 @@
 package com.example.backend.login;
 
+import com.example.backend.login.security.PrincipalDetailsService;
 import com.example.backend.login.security.jwt.JwtAuthenticationFilter;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
@@ -25,10 +26,13 @@ import java.util.Collections;
 @EnableWebSecurity
 public class SecurityContext {
 
+    private final PrincipalDetailsService principalDetailsService;
+
     private final JwtTokenProvider jwtTokenProvider;
 
-    public SecurityContext(JwtTokenProvider jwtTokenProvider) {
+    public SecurityContext(JwtTokenProvider jwtTokenProvider, PrincipalDetailsService principalDetailsService) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.principalDetailsService = principalDetailsService;
     }
 
     @Bean
@@ -45,7 +49,9 @@ public class SecurityContext {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:8888"));
+        configuration.setAllowedOrigins(
+                Arrays.asList("http://localhost:5173", "http://localhost:8888", "http://172.16.15.93:5173",
+                        "http://172.16.15.95:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         configuration.setAllowCredentials(true);
@@ -56,12 +62,12 @@ public class SecurityContext {
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtTokenProvider);
+        return new JwtAuthenticationFilter(jwtTokenProvider, principalDetailsService);
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+            JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .httpBasic(httpBasic -> httpBasic.disable())
@@ -98,7 +104,7 @@ public class SecurityContext {
                         "/api/reset-password","/api/admin/**"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
-                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist").hasRole("USER")
+                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist", "/api/wishlist/**").hasRole("USER")
                 .requestMatchers("/api/manager/**").hasRole("MANAGER")
                
                 .anyRequest().authenticated()
