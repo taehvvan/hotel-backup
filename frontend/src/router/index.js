@@ -123,13 +123,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // ROLE 기반 접근 제한
-  if (to.path.startsWith('/admin') && authStore.userRole !== 'ROLE_ADMIN') {
-    return next('/');
-  }
-  if (to.path.startsWith('/manager') && authStore.userRole !== 'ROLE_MANAGER') {
-    return next('/');
-  }
+ 
 
   next();
 });
