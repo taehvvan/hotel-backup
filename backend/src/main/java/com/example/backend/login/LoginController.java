@@ -75,12 +75,7 @@ public class LoginController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-<<<<<<< HEAD
         UserEntity user = userRepository.findByEmail(loginRequest.getEmail()).orElseThrow(()->new IllegalArgumentException("이메일 못 찾음"));
-=======
-        UserEntity user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(),
                 user.getRole(), user.getId());
@@ -97,12 +92,7 @@ public class LoginController {
         String token = tokenHeader.replace("Bearer ", "");
         String email = jwtTokenProvider.getUsernameFromToken(token);
 
-<<<<<<< HEAD
         UserEntity user = userRepository.findByEmail(email).orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
-=======
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
         LoginDTO dto = new LoginDTO(user.getId(), user.getName(), user.getEmail(), user.getRole());
 
         return ResponseEntity.ok(dto);
@@ -119,13 +109,7 @@ public class LoginController {
 
         // 토큰에서 사용자 정보 추출
         String email = jwtTokenProvider.getUsernameFromToken(refreshToken);
-<<<<<<< HEAD
         UserEntity user = userRepository.findByEmail(email).orElseThrow(()->new IllegalArgumentException("이메일 못 찾음"));;
-=======
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
-        ;
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
         if (user == null || !refreshToken.equals(user.getRefreshToken())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

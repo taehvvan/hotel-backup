@@ -14,13 +14,7 @@ import com.example.backend.admin.AdminUserDto;
 public interface UserRepository extends JpaRepository<UserEntity, Integer> {
 
     Optional<UserEntity> findByEmailAndSocial(String email, String social);
-<<<<<<< HEAD
     Optional<UserEntity> findByEmail(String email);
-=======
-
-    Optional<UserEntity> findByEmail(String email);
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
     boolean existsByEmail(String email);
     Optional<UserEntity> findByRefreshToken(String refreshToken);
 
