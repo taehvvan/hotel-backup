@@ -85,6 +85,9 @@ public class HotelSearchService {
                 .map(room -> {
                     RoomDTO rDto = new RoomDTO();
                     rDto.setRId(room.getRId());
+                    if (room.getHotel() != null) {
+                        rDto.setHId(room.getHotel().getHId());
+                    }
                     rDto.setType(room.getType());
                     rDto.setCount(room.getCount());
                     rDto.setPeople(room.getPeople());

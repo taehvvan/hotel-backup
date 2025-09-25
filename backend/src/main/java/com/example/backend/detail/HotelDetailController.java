@@ -21,7 +21,7 @@ public class HotelDetailController {
 
     @PostMapping
     public ResponseEntity<HotelDTO> detailHotels(@RequestBody DetailRequest request) {
-        System.out.println(request);
+        System.out.println("===========================" + request);
         HotelDTO hotelDTO = hotelDetailService.detail(request);
         return ResponseEntity.ok(hotelDTO);
     }

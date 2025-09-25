@@ -1,6 +1,8 @@
 package com.example.backend.search;
 
 import com.example.backend.search.RoomAvailability;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,7 +16,9 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class RoomDTO {
 
+    @JsonProperty("rId")
     private Long rId;
+    
     private String type;
     private int count;
     private int people;
@@ -22,7 +26,7 @@ public class RoomDTO {
     private String info;
     private String checkinTime;
     private String checkoutTime;
-    private Long hotelId;
+    private Long hId;
     // ✅ DTO에 필드를 명확하게 선언합니다.
     private List<RoomAvailabilityDTO> availabilities;
 
@@ -37,7 +41,7 @@ public class RoomDTO {
         this.checkoutTime = room.getCheckoutTime();
 
         if (room.getHotel() != null) {
-            this.hotelId = room.getHotel().getHId();
+            this.hId = room.getHotel().getHId();
         }
 
         // ✅ [수정] 'room.getAvailabilities()'를 실제 Room 엔티티의 getter 메소드 이름으로 변경해야 합니다.

@@ -101,15 +101,11 @@
 
         <div class="results-list">
           <div v-if="sortedResults.length > 0">
-            <router-link
+            <div
               v-for="item in sortedResults"
               :key="item.hId"
-              :to="{ 
-                name: 'HotelDetail', 
-                params: { id: item.hId }, 
-                query: $route.query
-              }"
-              class="result-card"
+              class="result-card" 
+              @click.prevent="goToDetail(item, item.rooms[0])"
             >
               <div class="result-card-inner"> 
                 <div class="image-wrapper">
@@ -163,7 +159,7 @@
                   </div>
                 </div>
               </div>
-            </router-link>
+            </div>
           </div>
           <div v-else>
             <p>죄송합니다, 검색 조건에 맞는 결과를 찾을 수 없습니다. 검색 조건을 변경 후 다시 조회해 주시기 바랍니다.</p>
@@ -187,10 +183,13 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import SearchBar from './SearchBar.vue';
+import { useBookingStore } from '@/stores/booking'
 
 const route = useRoute();
+const router = useRouter();
+const bookingStore = useBookingStore()
 
 const destination = ref('');
 const checkIn = ref(null);
@@ -201,6 +200,25 @@ const sortOption = ref('priceAsc');
 const rating = ref(0.0);
 
 const searchResults = ref([]);
+
+// 페이지 이동 + store 저장
+function goToDetail(hotel, room) {
+  // Pinia 스토어에 필요한 예약 정보 저장
+  bookingStore.setBooking(
+    { 
+      region: destination.value, 
+      checkIn: checkIn.value, 
+      checkOut: checkOut.value, 
+      rooms: rooms.value, 
+      persons: persons.value 
+    },
+    hotel,
+    room
+  );
+
+  // router.push에서 state 제거, params만 필요하면 전달
+  router.push({ name: 'HotelDetail', params: { id: hotel.hId } });
+}
 
 // 필터 상태
 const types = ['호텔', '모텔', '한옥', '펜션/풀빌라', '게스트하우스/비앤비', '리조트'];

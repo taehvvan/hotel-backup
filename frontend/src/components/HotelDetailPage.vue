@@ -2,14 +2,11 @@
   <div v-if="hotel" class="hotel-detail-page">
     <section class="detail-header">
       <div class="image-gallery">
-        <!-- Placeholder Images - real images will be fetched and displayed here -->
-        <div class="main-image">
-          <img src="https://placehold.co/1200x800?text=Hotel+Image+1" :alt="hotel.hname">
-        </div>
-     <!-- 메인 이미지 -->
-<div class="main-image">
-  <img :src="`http://localhost:8888/images/${hotel.type}/${hotel.hId}.jpg`" :alt="hotel.hname">
-</div>
+
+        <!-- 메인 이미지 -->
+    <div class="main-image">
+      <img :src="`http://localhost:8888/images/${hotel.type}/${hotel.hId}.jpg`" :alt="hotel.hname">
+    </div>
 
 <!-- 서브 이미지 -->
 <div class="sub-images">
@@ -226,31 +223,29 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick, computed, toRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useBookingStore } from '@/stores/booking'
-import { useUserStore } from '@/stores/user'
-import axios from 'axios'
+import { useBookingStore } from '@/stores/booking';
+import { useUserStore } from '@/stores/user';
+import axios from 'axios';
 
-const route = useRoute()
-const router = useRouter()
-const bookingStore = useBookingStore()
-const userStore = useUserStore()
+const route = useRoute();
+const router = useRouter();
+const bookingStore = useBookingStore();
+const userStore = useUserStore();
 
+// [수정] hotel 데이터를 담을 반응형 변수. 초기값은 null.
+const hotel = ref(null);
 const isStickyNavVisible = ref(false);
 const stickyNavBarRef = ref(null);
 
+// [수정] 검색 조건은 bookingStore에서 직접 가져오거나, URL 쿼리에서 파싱합니다.
 const search = bookingStore.search;
-const hotel = bookingStore.hotel;
-const room = bookingStore.room;
-
-const checkIn = ref(null);
-const checkOut = ref(null);
-const rooms = ref(1);
-const persons = ref(2);
-
-const uId = userStore.user?.id || null;
-const hId = ref(route.params.hId);
+const checkIn = ref(search.checkIn ? new Date(search.checkIn) : null);
+const checkOut = ref(search.checkOut ? new Date(search.checkOut) : null);
+const rooms = ref(search.rooms || 1);
+const persons = ref(search.persons || 2);
 
 const getRatingText = (rating) => {
+  if (!rating) return '보통이에요';
   if (rating >= 4.5) return '최고에요';
   if (rating >= 4.0) return '아주 좋아요';
   if (rating >= 3.0) return '괜찮아요';
@@ -274,33 +269,23 @@ const scrollToSection = (id) => {
   }
 };
 
-const loadDetailQueryFromUrl = () => {
-  const query = route.query;
-  checkIn.value = query.startDate ? new Date(query.startDate) : null;
-  checkOut.value = query.endDate ? new Date(query.endDate) : null;
-  rooms.value = Number(query.rooms) || 1;
-  persons.value = Number(query.persons) || 2;
-  hId.value = route.params.id || null; // 여기서 가져와야 함
-  console.log('Loaded hId from route.params:', hId.value); // 확인용
-};
+// [수정] 호텔 상세 정보를 서버에 요청하는 함수
+const fetchHotelDetails = async () => {
+  // [수정] 라우터 파라미터에서 직접 'id'를 가져옵니다. 'hId'가 아닙니다.
+  const hotelId = route.params.id;
 
-const sendDetailSearchRequest = async () => {
-  // hId 값이 유효하지 않으면 요청을 보내지 않습니다.
-  if (!hId.value || isNaN(Number(hId.value))) {
-    console.error("Hotel ID is not valid. Cancelling API request.");
-    return; // 함수를 즉시 종료
+  if (!hotelId) {
+    console.error("URL에서 Hotel ID를 찾을 수 없습니다.");
+    return;
   }
   
-  // 이 시점에서 hId는 항상 유효한 값(2)입니다.
   const requestBody = {
-    hId: Number(hId.value),
+    hId: Number(hotelId),
     startDate: checkIn.value ? checkIn.value.toISOString().split('T')[0] : null,
     endDate: checkOut.value ? checkOut.value.toISOString().split('T')[0] : null,
     numberOfRooms: Number(rooms.value),
     numberOfPeople: Number(persons.value),
   };
-
-  console.log('sending hId:', requestBody.hId);
 
   try {
     const response = await fetch('http://localhost:8888/api/detail', {
@@ -310,27 +295,39 @@ const sendDetailSearchRequest = async () => {
     });
 
     if (response.ok) {
-      // 서버 응답이 성공(200 OK)일 경우
-      hotel.value = await response.json(); // 응답 본문을 JSON으로 파싱하여 hotel 변수에 저장
+      // [수정] API 응답 결과를 hotel.value에 할당합니다.
+      hotel.value = await response.json();
       console.log('데이터 로드 성공:', hotel.value);
     } else {
       console.error('디테일 검색 실패:', response.status);
-      // 에러 처리 로직
     }
   } catch (error) {
     console.error('API 호출 중 예외 발생:', error);
   }
 };
 
-// 스크롤 이벤트 등록
+
+// 스크롤 이벤트 등록 및 해제
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
+  // [추가] 컴포넌트가 마운트되면 URL 쿼리를 기반으로 데이터를 불러옵니다.
+  fetchHotelDetails();
 });
 
-// 스크롤 이벤트 해제
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
 });
+
+
+// [삭제] watch 로직은 onMounted로 통합하여 초기 로딩을 단순화했습니다.
+// 필요 시 (예: 페이지 이동 없이 쿼리만 변경되는 경우) 다시 활성화할 수 있습니다.
+/*
+watch(
+  () => route.query,
+  fetchHotelDetails,
+  { immediate: true, deep: true }
+);
+*/
 
 const loadKakaoMap = () => {
   return new Promise((resolve, reject) => {
@@ -340,13 +337,12 @@ const loadKakaoMap = () => {
     }
 
     const script = document.createElement('script');
+    // [수정] autoload=false를 사용하므로 kakao.maps.load()를 호출해야 합니다.
     script.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=e77831e9ccd11f157f3055f8800d5602&autoload=false";
     script.onload = () => {
-      if (window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(() => {
         resolve(window.kakao);
-      } else {
-        reject(new Error("Kakao Maps SDK 로드 실패"));
-      }
+      });
     };
     script.onerror = () => reject(new Error("Kakao Maps SDK 스크립트 로드 실패"));
     document.head.appendChild(script);
@@ -356,139 +352,111 @@ const loadKakaoMap = () => {
 const initMap = async (hname) => {
   try {
     const kakao = await loadKakaoMap();
-    if (!kakao || !kakao.maps) {
-      console.error("Kakao Maps SDK가 정의되지 않았습니다.");
-      return;
-    }
+    const container = document.getElementById('kakao');
+    if (!container) return;
 
-    kakao.maps.load(() => {
-      const container = document.getElementById('kakao');
-      if (!container) return;
+    const options = {
+      center: new kakao.maps.LatLng(33.450701, 126.570667),
+      level: 3,
+    };
+    const map = new kakao.maps.Map(container, options);
 
-      const options = {
-        center: new kakao.maps.LatLng(33.450701, 126.570667),
-        level: 3,
-      };
-      const map = new kakao.maps.Map(container, options);
+    const geocoder = new kakao.maps.services.Geocoder();
 
-      const markerPosition = new kakao.maps.LatLng(33.450701, 126.570667); // 마커 위치
-      const marker = new kakao.maps.Marker({
-        position: markerPosition,
-      });
-
-      // 마커를 지도에 표시
-      marker.setMap(map);
-
-      // (선택) 마커 클릭 시 정보창 표시
-      const infowindow = new kakao.maps.InfoWindow({
-        content: `<div style="padding:5px;">${hname}</div>`,
-      });
-
-      kakao.maps.event.addListener(marker, 'click', function() {
+    geocoder.addressSearch(hotel.value.address, function(result, status) {
+      if (status === kakao.maps.services.Status.OK) {
+        const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+        const marker = new kakao.maps.Marker({
+          map: map,
+          position: coords
+        });
+        const infowindow = new kakao.maps.InfoWindow({
+          content: `<div style="width:150px;text-align:center;padding:6px 0;">${hname}</div>`
+        });
         infowindow.open(map, marker);
-      });
+        map.setCenter(coords);
+      }
     });
   } catch (e) {
     console.error("Kakao Map 로드 실패:", e);
   }
 };
 
+
 const topRatedReview = computed(() => {
   if (!hotel.value || !hotel.value.reviews || hotel.value.reviews.length === 0) return null;
-  // score가 가장 높은 리뷰 찾기
-  return hotel.value.reviews.reduce((max, review) => {
-    return review.score > (max?.score || 0) ? review : max;
-  }, null);
+  return hotel.value.reviews.reduce((max, review) => 
+    review.score > (max?.score || 0) ? review : max
+  , null);
 });
 
-// 호텔 데이터가 세팅되면 지도 초기화
+
 watch(hotel, async (newVal) => {
-  if (newVal) {
+  if (newVal && newVal.address) {
     await nextTick();
     initMap(newVal.hname);
   }
-});
+}, { deep: true });
 
-// 예약하기 버튼 클릭 시 실행
+
 const goToCheckout = async (room) => {
+  // [추가] hotel 데이터가 없으면 예약을 진행할 수 없습니다.
+  if (!hotel.value) {
+    alert("호텔 정보가 로드되지 않았습니다.");
+    return;
+  }
+  
   try {
-    bookingStore.setBooking(search, toRaw(hotel.value), room);
 
-    const formatDate = (date) => {
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
+    const roomWithHotelId = { ...room, hid: hotel.value.hid };
+
+    // [수정] toRaw를 사용하여 반응형 객체의 원본을 전달합니다.
+    bookingStore.setBooking(search, toRaw(hotel.value), roomWithHotelId);
+
+    const formatDate = (date) => new Date(date).toISOString().split('T')[0];
     
-
-    // 1. [예약 생성 요청]을 위한 데이터 준비
     const reservationData = {
-      rId: room.rid,
+      rId: room.rId,
       uId: userStore.user?.id || null,
-      hId: hotel.hId,
+      // [수정] 반응형 객체에서 값을 가져올 때는 .value를 사용해야 합니다.
+      hId: hotel.value.hid, 
       checkin: formatDate(checkIn.value),
       checkout: formatDate(checkOut.value),
       people: persons.value,
       price: room.price * rooms.value,
     };
 
-    console.log('예약 데이터:', reservationData);
+    console.log('--- [디버깅] 예약 요청 데이터 ---');
+    console.log('🏨 Hotel ID (hId):', reservationData.hId);
+    console.log('🚪 Room ID (rId):', reservationData.rId);
+    console.log('👤 User ID (uId):', reservationData.uId);
+    console.log('📦 전체 데이터 객체:', reservationData);
 
-    // 1. 예약 생성 요청
     const reservationResponse = await axios.post('http://localhost:8888/api/reservations', reservationData, {
       headers: {
-        // 로그인된 사용자의 경우 토큰을 함께 보냅니다.
-        Authorization: `Bearer ${localStorage.getItem('accessToken')}`, // 'accessToken' 대신 'jwtToken' 사용
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
       },
     });
 
-    // ✅ 백엔드 DTO 필드명(reservationId)과 일치시킵니다.
-    const reservationId = reservationResponse.data.reservationId; 
+    const reservationId = reservationResponse.data.reservationId;
     if (!reservationId) {
-      // 오류 메시지도 더 명확하게 변경 (디버깅용)
-      console.error("응답 데이터:", reservationResponse.data); 
       throw new Error("서버 응답에서 reservationId를 찾을 수 없습니다.");
     }
-
-    console.log('생성된 예약 ID:', reservationId);
-
-    // 3. Pinia 스토어에 예약 ID를 저장합니다.
-    // 이렇게 하면 다음 페이지(/checkout)에서 이 ID를 사용할 수 있습니다.
+    
     bookingStore.setReservationId(reservationId);
-
-    bookingStore.setBooking(
-      bookingStore.search,
-      reservationResponse.data.hotel,
-      reservationResponse.data.room
-    );
-
-    // 결제 후 체크아웃 페이지로 이동
+    
+    // [삭제] 중복되는 setBooking 호출 제거
     router.push('/checkout');
- 
 
   } catch (error) {
     console.error('예약 생성 중 오류 발생:', error);
     if (error.response) {
-      console.error('서버 응답 데이터:', error.response.data);
       alert(`예약 생성에 실패했습니다: ${error.response.data.message || '서버 오류'}`);
     } else {
       alert('예약 생성에 실패했습니다. 네트워크 연결을 확인해주세요.');
     }
   }
 };
-
-watch(
-  () => route.query,
-  () => {
-    loadDetailQueryFromUrl();
-    sendDetailSearchRequest();
-  },
-  { immediate: true, deep: true }
-);
-
-
 </script>
 
 <style>

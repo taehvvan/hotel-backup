@@ -19,10 +19,12 @@
   import { ref, onMounted } from 'vue';
   import { useRouter, useRoute } from 'vue-router'
   import { useAuthStore } from '../stores/auth';
+  import { useBookingStore } from '../stores/booking';
 
     const route = useRoute()
     const router = useRouter();
     const authStore = useAuthStore();
+    const bookingStore = useBookingStore();
     const orderId = ref('');
 
     onMounted(() => {
@@ -30,6 +32,8 @@
     // URL 쿼리에서 orderId를 가져옵니다.
     orderId.value = route.query.orderId || '';
     console.log('결제 성공 orderId:', orderId.value);
+    bookingStore.clearBooking();
+    console.log('localStorage의 예약 정보가 삭제되었습니다.');
     // 이 곳에서 서버로 결제 완료 사실을 알리는 API를 호출할 수도 있습니다 (선택 사항).
     });
   

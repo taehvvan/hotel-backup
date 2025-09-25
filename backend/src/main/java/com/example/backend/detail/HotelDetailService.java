@@ -122,6 +122,9 @@ public class HotelDetailService {
         dto.setRooms(availableRooms.stream().map(room -> {
             RoomDTO roomDTO = new RoomDTO();
             roomDTO.setRId(room.getRId());
+            if (room.getHotel() != null) {
+                roomDTO.setHId(room.getHotel().getHId());
+            }
             roomDTO.setType(room.getType());
             roomDTO.setPrice(room.getPrice());
             roomDTO.setPeople(room.getPeople());
