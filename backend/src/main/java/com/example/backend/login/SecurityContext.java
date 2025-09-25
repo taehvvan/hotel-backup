@@ -78,6 +78,7 @@ public class SecurityContext {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                         "/api/auth/login",
+                        "/api/manager-register", //매니저 회원가입
                         "/api/register",
                         "/api/kakao/login",      // 카카오 로그인 시작 URL
                         "/api/kakao/callback",   // 카카오 콜백 URL

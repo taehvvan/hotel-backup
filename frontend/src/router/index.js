@@ -125,8 +125,11 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
- 
-
+  // ROLE 기반 접근 제한
+  const publicManagerRoutes = ['/manager-login', '/manager-register'];
+  if (to.path.startsWith('/manager') && !publicManagerRoutes.includes(to.path) && authStore.userRole !== 'ROLE_MANAGER') {
+    return next('/');
+  }
   next();
 });
 

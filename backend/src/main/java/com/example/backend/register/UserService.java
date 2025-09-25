@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import com.example.backend.login.dto.TokenResponse;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 
+import jakarta.validation.Valid;
+
 
 @Service
 public class UserService {
@@ -43,6 +45,23 @@ public class UserService {
             System.err.println("회원가입 처리 중 오류: " + e.getMessage());
             return false;
         }
+    }
+
+    public void registerManager(ManagerRegisterRequest request) {
+        // 이메일 중복 확인
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("이메일이 이미 사용중 입니다.");
+        }
+
+        UserEntity user = new UserEntity();
+        user.setEmail(request.getEmail());
+        user.setName(request.getName());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setCompanyName(request.getCompanyName());
+        user.setBusinessNumber(request.getBusinessNumber());
+        user.setRole("ROLE_MANAGER"); // 매니저 역할 부여
+
+        userRepository.save(user);
     }
 
     public UserEntity kakaoLoginOrRegister(String code) throws Exception {
@@ -92,5 +111,6 @@ public class UserService {
             return userRepository.save(googleUser);
         });
     }
+
 }
 
