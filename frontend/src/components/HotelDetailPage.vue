@@ -239,7 +239,7 @@ const isStickyNavVisible = ref(false);
 const stickyNavBarRef = ref(null);
 
 const search = bookingStore.search;
-const hotel = ref(bookingStore.hotel);
+const hotel = bookingStore.hotel;
 const room = bookingStore.room;
 
 const checkIn = ref(null);
@@ -427,6 +427,7 @@ const goToCheckout = async (room) => {
     const reservationData = {
       rId: room.rid,
       uId: userStore.user?.id || null,
+      hId: hotel.hId,
       checkin: formatDate(checkIn.value),
       checkout: formatDate(checkOut.value),
       people: persons.value,

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.example.backend.register.UserEntity;
+import com.example.backend.search.Hotel;
 import com.example.backend.search.Room;
 
 import jakarta.persistence.Column;
@@ -37,6 +38,10 @@ public class Reservation {
     @ManyToOne
     @JoinColumn(name = "r_id")   // 객실 ID FK
     private Room room;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "h_id", nullable = false) // 호텔 ID FK
+    private Hotel hotel;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "u_id", nullable = true) // nullable 허용

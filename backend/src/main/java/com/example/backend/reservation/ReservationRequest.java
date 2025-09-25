@@ -19,6 +19,7 @@ import lombok.Setter;
 public class ReservationRequest {
     private Integer rId;         // 객실 ID
     private Integer uId;         // 회원 ID (비회원이면 null)
+    private Long hId;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkin;

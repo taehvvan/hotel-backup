@@ -44,6 +44,8 @@ const handleBookingCheck = async () => {
       },
     });
 
+    console.log('응답 데이터:', response.data);
+
     const reservation = response.data;
 
     if (!reservation) {
@@ -55,8 +57,20 @@ const handleBookingCheck = async () => {
     // state를 통해 예약 정보를 넘겨줍니다.
     router.push({
       name: 'GuestBookingDetail',
-      state: { reservation: reservation },
+      query: {
+        reservationId: reservation.reservationId,
+        checkIn: reservation.checkIn,
+        checkOut: reservation.checkOut,
+        people: reservation.people,
+        price: reservation.price,
+        status: reservation.status,
+        roomType: reservation.roomType,
+        hotelName: reservation.hotelName,
+        address: reservation.address,
+        hotelImage: reservation.hotelImage
+      }
     });
+    console.log('state로 전달된 예약 정보:', reservation);
   } catch (error) {
     console.error('예약 조회 중 오류 발생:', error);
     alert('예약 조회에 실패했습니다. 다시 시도해주세요.');

@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.register.UserEntity;
 import com.example.backend.register.UserRepository;
+import com.example.backend.search.Hotel;
+import com.example.backend.search.HotelRepository;
 import com.example.backend.search.Room;
 import com.example.backend.search.RoomRepository;
 
@@ -21,12 +23,16 @@ public class ReservationService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final HotelRepository hotelRepository;
 
     @Transactional
     public ReservationPrepareResponse createReservation(ReservationRequest request) {
         // 1. 객실 조회
         Room room = roomRepository.findById(request.getRId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다. ID: " + request.getRId()));
+
+                Hotel hotel = hotelRepository.findById(request.getHId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 호텔입니다. ID: " + request.getHId()));
 
         // 2. 유저 조회 (비회원인 경우 null)
         UserEntity user = null;
@@ -39,6 +45,7 @@ public class ReservationService {
         Reservation reservation = Reservation.builder()
                 .room(room)
                 .user(user)
+                .hotel(hotel)
                 .checkin(request.getCheckin())
                 .checkout(request.getCheckout())
                 .people(request.getPeople())

@@ -57,10 +57,12 @@ public class ReservationResponseDTO {
                          ? reservation.getRoom().getHotel().getHName() : "";
         this.address = (reservation.getRoom() != null && reservation.getRoom().getHotel() != null)
                          ? reservation.getRoom().getHotel().getAddress() : "";
-        this.hotelImage = (reservation.getRoom() != null && reservation.getRoom().getHotel() != null
-                           && reservation.getRoom().getHotel().getImages() != null
-                           && !reservation.getRoom().getHotel().getImages().isEmpty())
-                           ? reservation.getRoom().getHotel().getImages().get(0).getImageUrl() : "";
+                         this.hotelImage = (reservation.getRoom() != null && reservation.getRoom().getHotel() != null
+                         && reservation.getRoom().getHotel().getImages() != null
+                         && !reservation.getRoom().getHotel().getImages().isEmpty())
+                         ? "/hotel_images/" + reservation.getRoom().getHotel().getImages().get(0).getImageUrl()
+                         : "";
+      
     }
     
 }
