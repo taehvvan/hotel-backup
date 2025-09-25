@@ -102,7 +102,7 @@ router.beforeEach(async (to, from, next) => {
 
   // 로그인 안 되어 있으면 localStorage에서 JWT 확인 후 fetchUserInfo
   if (!authStore.isLoggedIn) {
-    const token = localStorage.getItem('jwtToken');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       try {
         await authStore.fetchUserInfo(token); // 상태 재설정
@@ -113,13 +113,10 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // ROLE 기반 접근 제한
-  if (to.path.startsWith('/admin') && authStore.userRole !== 'ROLE_ADMIN') {
+  const publicManagerRoutes = ['/manager-login', '/manager-register'];
+  if (to.path.startsWith('/manager') && !publicManagerRoutes.includes(to.path) && authStore.userRole !== 'ROLE_MANAGER') {
     return next('/');
   }
-  if (to.path.startsWith('/manager') && authStore.userRole !== 'ROLE_MANAGER') {
-    return next('/');
-  }
-
   next();
 });
 

@@ -35,6 +35,20 @@ public class RegisterController {
             return ResponseEntity.badRequest().body(Collections.singletonMap("success", false));
         }
     }
+
+    // 매니저 회원가입
+    @PostMapping("/manager-register")
+    public ResponseEntity<Map<String, Boolean>> registerManager(@Valid @RequestBody ManagerRegisterRequest request) {
+        try {
+            userService.registerManager(request);
+            // 성공 시 success: true를 포함하는 JSON 응답 반환
+            return ResponseEntity.ok(Collections.singletonMap("success", true));
+        } catch (IllegalArgumentException e) {
+            // 실패 시 success: false를 포함하는 JSON 응답 반환 (400 Bad Request)
+            return ResponseEntity.badRequest().body(Collections.singletonMap("success", false));
+        }
+    }
+
     
 }
 

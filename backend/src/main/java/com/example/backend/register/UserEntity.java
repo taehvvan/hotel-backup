@@ -51,6 +51,13 @@ public class UserEntity {
     @Column(name = "refresh_token")
     private String refreshToken;
 
+    // 매니저 관련 필드 추가
+    @Column(name = "company_name", length = 255)
+    private String companyName;
+
+    @Column(name = "business_number", length = 255)
+    private String businessNumber;
+
     public static UserEntity fromDto(UserDTO userDto) {
         return UserEntity.builder()
                 .name(userDto.getName())

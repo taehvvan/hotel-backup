@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             path.startsWith("/api/detail") || path.startsWith("/api/kakao/login") ||
             path.startsWith("/api/kakao/callback") || path.startsWith("/api/google/login") ||
             path.startsWith("/api/google/callback") || path.startsWith("/api/request-reset-password") || 
-            path.startsWith("/api/verify-code-for-password-reset")) {
+            path.startsWith("/api/verify-code-for-password-reset") || path.startsWith("/api/manager-register")) {
             filterChain.doFilter(request, response);
             return;
         }
