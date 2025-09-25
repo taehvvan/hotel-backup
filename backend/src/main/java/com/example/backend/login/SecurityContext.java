@@ -95,12 +95,12 @@ public class SecurityContext {
                         "/checkout-guest",
                         "/images/**", "/css/**", "/js/**", "/error",
                         "/api/request-reset-password", "/api/verify-code-for-password-reset",
-                        "/api/reset-password"
+                        "/api/reset-password","/api/admin/**"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
                 .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist").hasRole("USER")
                 .requestMatchers("/api/manager/**").hasRole("MANAGER")
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+               
                 .anyRequest().authenticated()
             )
             // ✅ Bean으로 등록된 필터 인스턴스를 사용

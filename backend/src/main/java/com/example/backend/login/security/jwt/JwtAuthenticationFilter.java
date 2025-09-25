@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         System.out.println("JwtAuthenticationFilter 실행됨");
         String path = request.getRequestURI();
 
-        // 로그인, 회원가입 요청은 JWT 검사하지 않음
+        // 로그인, 회원가입, 이미지, css, js, 검색 등 JWT 검사 제외 URL
         if (path.startsWith("/api/auth/login") || path.startsWith("/api/register") ||
             path.startsWith("/api/send-code") || path.startsWith("/api/verify-code") || 
             path.startsWith("/api/check-email") || path.startsWith("/api/search") || path.startsWith("/api/search/**") || 
@@ -38,7 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             path.startsWith("/api/google/callback") || path.startsWith("/api/request-reset-password") || 
             path.startsWith("/api/verify-code-for-password-reset") || path.startsWith("/api/reset-password") ||
             path.startsWith("/api/reservations") || path.startsWith("/api/payments/complete") ||
-            path.startsWith("/images/") || path.startsWith("/css/") || path.startsWith("/js/")) {
+            path.startsWith("/images/") || path.startsWith("/css/") || path.startsWith("/js/") ||
+            path.startsWith("/api/admin")) {  // ✅ admin API 테스트용 제외
             filterChain.doFilter(request, response);
             return;
         }
@@ -53,11 +54,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 토큰이 유효하면 인증 객체 생성 후 SecurityContext에 저장
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            
+
                 System.out.println("Principal: " + authentication.getPrincipal());
                 System.out.println("Authorities: " + authentication.getAuthorities());
             } else {
-                // 토큰 없거나 유효하지 않으면 401 반환
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or missing JWT token");
                 return;
             }
@@ -71,7 +71,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    // 요청 헤더에서 Bearer 토큰 추출
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {

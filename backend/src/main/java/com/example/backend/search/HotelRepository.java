@@ -5,7 +5,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.example.backend.admin.AdminHotelDto;
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,6 +65,16 @@ public interface HotelRepository extends JpaRepository<Hotel, Long> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    // ✅ 엑셀 업로드용 중복 체크
+            
+
+ @Query("SELECT new com.example.backend.admin.AdminHotelDto(" +
+           "h.hId, h.hName, h.region, h.active, " +
+           "COALESCE((SELECT SUM(res.price) FROM Reservation res WHERE res.room.hotel = h AND res.createdAt >= :monthAgo), 0L), " +
+           "COALESCE((SELECT COUNT(res) FROM Reservation res WHERE res.room.hotel = h AND res.createdAt >= :monthAgo), 0L), " +
+           "COALESCE((SELECT AVG(rev.score) FROM Review rev WHERE rev.hotel = h), 0.0)) " +
+           "FROM Hotel h WHERE h.type = :type")
+    List<AdminHotelDto> findHotelsForAdminByType(@Param("type") String type, @Param("monthAgo") LocalDateTime monthAgo);
+
+            
     Optional<Hotel> findByhNameAndAddress(String hName, String address);
 }
