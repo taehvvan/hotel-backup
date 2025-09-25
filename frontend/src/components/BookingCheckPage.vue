@@ -1,71 +1,68 @@
 <template>
-    <div class="booking-check-container">
-      <div class="form-wrapper">
-        <header class="page-header">
-          <h1>예약 확인</h1>
-          <p>예약 번호와 예약 시 입력한 전화번호를 입력해주세요.</p>
-        </header>
-  
-        <form @submit.prevent="handleBookingCheck" class="check-form">
-          <div class="input-group">
-            <label for="booking-number">예약 번호</label>
-            <input type="text" id="booking-number" v-model="bookingNumber" placeholder="예약 번호를 입력하세요">
-          </div>
-          <div class="input-group">
-            <label for="phone-number">전화번호</label>
-            <input type="tel" id="phone-number" v-model="phoneNumber" placeholder="'-' 없이 숫자만 입력하세요">
-          </div>
-          <button type="submit" class="btn-check">예약 조회하기</button>
-        </form>
-      </div>
+  <div class="booking-check-container">
+    <div class="form-wrapper">
+      <header class="page-header">
+        <h1>예약 확인</h1>
+        <p>예약 번호와 예약 시 입력한 전화번호를 입력해주세요.</p>
+      </header>
+
+      <form @submit.prevent="handleBookingCheck" class="check-form">
+        <div class="input-group">
+          <label for="booking-number">예약 번호</label>
+          <input type="text" id="booking-number" v-model="bookingNumber" placeholder="예약 번호를 입력하세요" />
+        </div>
+        <div class="input-group">
+          <label for="phone-number">전화번호</label>
+          <input type="tel" id="phone-number" v-model="phoneNumber" placeholder="'-' 없이 숫자만 입력하세요" />
+        </div>
+        <button type="submit" class="btn-check">예약 조회하기</button>
+      </form>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue';
-  import axios from 'axios';
-  import { useRouter } from 'vue-router';
-  
-  const bookingNumber = ref('');
-  const phoneNumber = ref('');
-  const router = useRouter();
-  
-  const handleBookingCheck = async () => {
-    if (!bookingNumber.value || !phoneNumber.value) {
-      alert('예약 번호와 전화번호를 모두 입력해주세요.');
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const bookingNumber = ref('');
+const phoneNumber = ref('');
+const router = useRouter();
+
+const handleBookingCheck = async () => {
+  if (!bookingNumber.value || !phoneNumber.value) {
+    alert('예약 번호와 전화번호를 모두 입력해주세요.');
+    return;
+  }
+
+  try {
+    const response = await axios.get('http://localhost:8888/api/reservations/guest', {
+      params: {
+        phone: phoneNumber.value,
+        pId: bookingNumber.value,
+      },
+    });
+
+    const reservation = response.data;
+
+    if (!reservation) {
+      alert('예약 정보를 찾을 수 없습니다. 입력 정보를 확인해주세요.');
       return;
     }
 
-    try {
-      const response = await axios.get('http://localhost:8888/api/reservations/guest', {
-        params: {
-          phone: phoneNumber.value,
-          pId: bookingNumber.value
-        }
-      });
-
-      const reservation = response.data;
-
-      if (!reservation) {
-        alert('예약 정보를 찾을 수 없습니다. 입력 정보를 확인해주세요.');
-        return;
-      }
-
-      // 예약 조회 성공 → 예약 상세 페이지 또는 확인 페이지로 이동
-      // 예약 정보를 router.query로 전달
-      router.push({
-        path: '/booking-detail',
-        query: {
-          reservationId: reservation.reservationId
-        }
-      });
-
-    } catch (error) {
-      console.error('예약 조회 중 오류 발생:', error);
-      alert('예약 조회에 실패했습니다. 다시 시도해주세요.');
-    }
-  };
-  </script>
+    // 예약 조회 성공 → 예약 상세 페이지로 이동
+    // state를 통해 예약 정보를 넘겨줍니다.
+    router.push({
+      name: 'GuestBookingDetail',
+      state: { reservation: reservation },
+    });
+  } catch (error) {
+    console.error('예약 조회 중 오류 발생:', error);
+    alert('예약 조회에 실패했습니다. 다시 시도해주세요.');
+  }
+};
+</script>
   
   <style scoped>
   .booking-check-container {

@@ -28,6 +28,7 @@ import PasswordReset from '@/components/PasswordReset.vue';
 import PaymentSuccess from '../components/PaymentSuccess.vue';
 import PaymentFail from '../components/PaymentFail.vue';
 import PaymentCallback from '../components/PaymentCallback.vue';
+import GuestBookingDetail from '../components/GuestBookingDetail.vue';
 
 const routes = [
   // --- 공용 페이지 ---
@@ -52,6 +53,7 @@ const routes = [
   { path: '/payment-fail', name: 'PaymentFail', component: PaymentFail },
   { path: '/payment-callback', name: 'PaymentCallback', component: PaymentCallback, meta: { requiresAuth: false} },
   { path: '/payment-success', name: 'PaymentSuccess', component: PaymentSuccess },
+  { path: '/booking-detail', name: 'GuestBookingDetail', component: GuestBookingDetail },
   
   // --- 일반 사용자 전용 페이지 (로그인 필요) ---
   { path: '/mypage', name: 'UserMypage', component: UserMypage, meta: { requiresAuth: true } },
