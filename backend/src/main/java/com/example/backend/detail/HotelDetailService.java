@@ -66,14 +66,9 @@ public class HotelDetailService {
                 .collect(Collectors.toList());
 
         // 3. Check for insufficient availability, matching the SQL's NOT EXISTS logic.
-        // The room is considered unavailable if there is at least one date with
-        // insufficient rooms.
         boolean hasInsufficientAvailability = availabilities.stream()
                 .anyMatch(a -> a.getAvailableCount() < numberOfRooms);
 
-        // Return true if no insufficient availability was found, otherwise return
-        // false.
-        // This also handles cases with no availability data (anyMatch returns false).
         return !hasInsufficientAvailability;
     }
 
@@ -106,17 +101,11 @@ public class HotelDetailService {
             dto.setAvgScore(0.0);
             dto.setReviewCount(0);
         }
+
+        // [수정] 오류가 발생한 수동 매핑 로직을 ReviewDTO 생성자를 사용하도록 변경
         dto.setReviews(hotel.getReviews().stream()
-                .map(review -> {
-                    ReviewDTO rDto = new ReviewDTO();
-                    rDto.setReviewId(review.getReviewId());
-                    rDto.setPId(review.getPId());
-                    rDto.setHId(review.getHotel().getHId()); // Hotel 참조는 ID만
-                    rDto.setImage(review.getImage());
-                    rDto.setScore(review.getScore());
-                    rDto.setContent(review.getContent());
-                    return rDto;
-                }).collect(Collectors.toList()));
+                .map(ReviewDTO::new)
+                .collect(Collectors.toList()));
 
         // Convert Rooms to Room DTOs
         dto.setRooms(availableRooms.stream().map(room -> {

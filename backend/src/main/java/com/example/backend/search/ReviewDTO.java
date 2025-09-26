@@ -4,34 +4,40 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
 public class ReviewDTO {
     private Long reviewId;
-    private Long pId;
+    private Integer reservationId; // [수정] Long -> Integer
     private Long hId;
+    private String hotelName; 
     private String image;
     private Integer score;
     private String content;
+    private String userName; 
+    private LocalDateTime createdAt;
 
     public ReviewDTO(Review review) {
         this.reviewId = review.getReviewId();
         this.image = review.getImage();
         this.score = review.getScore();
         this.content = review.getContent();
+        this.createdAt = review.getCreatedAt();
 
-        // ✅ [수정] Review 엔티티에 Payment와의 직접적인 관계가 없으므로 관련 코드를 제거하거나,
-        // 올바른 연관 관계(예: review.getReservation().getPayment())로 수정해야 합니다.
-        // 여기서는 컴파일을 위해 임시로 주석 처리합니다.
-        /*
-        if (review.getPayment() != null) {
-            this.pId = review.getPayment().getPId();
+        if (review.getReservation() != null) {
+            this.reservationId = review.getReservation().getReId();
         }
-        */
 
         if (review.getHotel() != null) {
             this.hId = review.getHotel().getHId();
+            this.hotelName = review.getHotel().getHName();
+        }
+        
+        if (review.getUser() != null) {
+            this.userName = review.getUser().getName();
         }
     }
 }

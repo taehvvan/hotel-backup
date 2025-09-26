@@ -1,11 +1,14 @@
 package com.example.backend.reservation;
 
+import java.time.LocalDate;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.login.security.PrincipalDetails;
 import com.example.backend.register.UserEntity;
 import com.example.backend.register.UserRepository;
+import com.example.backend.search.RoomAvailabilityService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,6 +19,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
+    private final RoomAvailabilityService roomAvailabilityService;
     // private final RestTemplate restTemplate; // Toss API 연동을 위한 HTTP 클라이언트
 
     @Transactional
@@ -41,13 +45,23 @@ public class PaymentService {
         // 여기서는 성공했다고 가정하고 시뮬레이션합니다.
         // verifyPaymentWithToss(request.getPaymentKey(), request.getOrderId(), request.getAmount());
 
-        // 3. 결제(Payment) 엔티티 생성
+        // 3. 객실 수 차감
+        LocalDate checkin = reservation.getCheckin();
+        LocalDate checkout = reservation.getCheckout();
+        int quantity = reservation.getPeople(); // 예시: 예약 인원 기준 차감
+        roomAvailabilityService.reserveRoom(reservation.getRoom().getRId(), checkin, checkout, quantity);
+
+        // 4. 예약 상태 업데이트
+        reservation.setStatus("예약 완료");
+        reservationRepository.save(reservation);
+
+        // 5. 결제 정보 생성
         Payment payment = Payment.builder()
                 .user(user)
                 .reservation(reservation)
                 .room(reservation.getRoom())
                 .payMethod(request.getPayMethod())
-                .phone(request.getPhone()) // 회원/비회원 전화번호 모두 저장
+                .phone(request.getPhone())
                 .paymentKey(request.getPaymentKey())
                 .orderId(request.getOrderId())
                 .amount(request.getAmount())
@@ -55,11 +69,8 @@ public class PaymentService {
 
         Payment savedPayment = paymentRepository.save(payment);
 
-        // 4. 예약(Reservation) 상태를 "예약 완료"로 변경
-        reservation.setStatus("예약 완료");
-        // @Transactional에 의해 자동 저장됩니다.
+        System.out.println("결제 완료 & 예약 상태 변경 완료 - pId: " + savedPayment.getPId());
 
-        System.out.println("결제 및 예약 상태 변경 완료 - pId: " + savedPayment.getPId());
         return new PaymentResponseDTO(savedPayment);
     }
     

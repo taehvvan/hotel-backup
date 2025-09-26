@@ -60,10 +60,15 @@ public class RoomAvailabilityService {
             RoomAvailability ra = roomAvailabilityRepository
                     .findByRoom_rIdAndDate(rId, date)
                     .orElseThrow(() -> new RuntimeException("객실 정보 없음"));
+            
+            System.out.println("[예약 전] 날짜: " + date + ", 남은 객실: " + ra.getAvailableCount());
+            
             int remaining = ra.getAvailableCount() - quantity;
             if (remaining < 0) throw new RuntimeException("잔여 객실 부족");
             ra.setAvailableCount(remaining);
             roomAvailabilityRepository.save(ra);
+
+            System.out.println("[예약 후] 날짜: " + date + ", 남은 객실: " + ra.getAvailableCount());
         }
     }
 }

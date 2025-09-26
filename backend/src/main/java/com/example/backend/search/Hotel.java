@@ -44,6 +44,9 @@ public class Hotel {
     @Column(name = "info", columnDefinition = "TEXT")
     private String info;
 
+    @Column(name = "status", nullable = false)
+    private String status = "대기";
+
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HotelImage> images = new ArrayList<>();
 

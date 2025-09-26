@@ -1,5 +1,7 @@
 package com.example.backend.reservation;
 
+import java.time.LocalDate;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -7,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.backend.login.security.PrincipalDetails;
 import com.example.backend.register.UserEntity;
+import com.example.backend.search.RoomAvailabilityService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final RoomAvailabilityService roomAvailabilityService;
 
     @PostMapping("/complete")
     public ResponseEntity<?> completePayment(@RequestBody PaymentRequest request,
@@ -29,7 +33,7 @@ public class PaymentController {
         UserEntity user = (principalDetails != null) ? principalDetails.getUser() : null;
         */
 
-        // 서비스 호출
+        // 1. 결제 완료 처리
         PaymentResponseDTO responseDTO = paymentService.completePayment(request, principalDetails);
 
         // 성공 응답 반환

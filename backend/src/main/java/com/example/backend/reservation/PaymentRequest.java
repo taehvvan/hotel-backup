@@ -17,6 +17,11 @@ public class PaymentRequest {
     private Integer userId;
     private String phone;
 
+    // 예약 날짜 및 수량
+    private String checkin;  // yyyy-MM-dd
+    private String checkout; // yyyy-MM-dd
+    private Integer quantity;
+
     // Toss Payments 정보
     private String paymentKey;
     private String orderId;

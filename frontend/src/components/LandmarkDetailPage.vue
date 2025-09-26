@@ -1,3 +1,4 @@
+<!-- LandmarkDetailPage.vue -->
 <template>
   <!-- 1) 로딩 -->
   <div v-if="isLoading" class="loading-container">
@@ -32,6 +33,7 @@
               :alt="gallery[currentIndex]?.alt || landmark.name"
               decoding="async"
               fetchpriority="high"
+              @error="onImgError"
             />
             <button class="nav next" @click="next" aria-label="다음 사진">›</button>
           </div>
@@ -46,7 +48,7 @@
               :aria-selected="i === currentIndex"
               :title="img.alt"
             >
-              <img :src="img.src" :alt="img.alt" loading="lazy" decoding="async" />
+              <img :src="img.src" :alt="img.alt" loading="lazy" decoding="async" @error="onImgError" />
             </button>
           </div>
         </section>
@@ -83,7 +85,12 @@
               class="detail-text"
               :class="{ collapsed: !isDetailExpanded }"
             >
-              {{ landmark.detail }}
+              <template v-if="detailIsHtml">
+                <div v-html="detailDisplay"></div>
+              </template>
+              <template v-else>
+                {{ detailDisplay }}
+              </template>
             </div>
 
             <div v-if="!isDetailExpanded && isOverflow" class="fade" aria-hidden="true"></div>
@@ -99,7 +106,7 @@
 
       <!-- 사이드 -->
       <aside class="sidebar-column">
-        <div class="sticky-sidebar">
+        <div class="bottom-sidebar">
           <div class="nearby-hotel-card">
             <h3>근처 숙소 찾아보기</h3>
             <p>'{{ landmark.name }}' 근처의 멋진 숙소들을 둘러보세요.</p>
@@ -132,7 +139,7 @@ const route = useRoute()
 const landmarks = ref([])
 const landmark = ref(null)
 const currentIndex = ref(0)
-const tab = ref('guide')
+const tab = ref('detail') // 기본 탭: 상세정보
 const thumbsEl = ref(null)
 const isLoading = ref(true)
 
@@ -143,23 +150,55 @@ const isDetailExpanded = ref(false)
 const toggleExpand = () => { isDetailExpanded.value = !isDetailExpanded.value }
 
 /** 유틸 */
+// 쉼표/세미콜론/파이프만 구분자 (스페이스로는 split 안 함)
 const splitList = (v) => {
   if (v == null) return []
-  // 쉼표, 세미콜론, |, 공백 여러 개를 구분자로 허용
-  return String(v).split(/[;,|\s]+/).map(s => s.trim()).filter(Boolean)
+  return String(v).split(/[,;|]+/).map(s => s.trim()).filter(Boolean)
 }
+
+// 엑셀이 `landmarks/...`를 주는 전제.
+// 루트: `/landmarks/...` 로 매핑. (배포/개발 모두 public 아래 정적 서빙)
 const resolveImage = (p) => {
   if (!p) return ''
-  const s = String(p).trim()
-  if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')) return s
-  return `/images/${s}`
+  let s = String(p).trim()
+
+  // 경로 정리
+  s = s
+    .replace(/\\/g, '/')                           // 역슬래시 -> 슬래시
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')        // 제로폭문자 제거
+    .replace(/["'‘’“”]/g, '')                     // 따옴표 제거
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-') // 특수 대시 -> -
+    .replace(/\/{2,}/g, '/')                       // // -> /
+    .replace(/^\.?\/*/, '')                        // 앞의 ./, / 제거
+    .replace(/^public\//i, '')                     // public/ 제거
+
+  // 절대 URL은 그대로
+  if (/^https?:\/\//i.test(s)) return s
+
+  // 이미 루트 접두라면 정규화해서 반환
+  if (/^\/?(landmarks|images)\//i.test(s)) {
+    return s.startsWith('/') ? s : '/' + s
+  }
+
+  // 기본(엑셀이 상대경로일 때): /landmarks/ 아래에 있다고 가정
+  return '/landmarks/' + s
 }
+
+// 깨진 이미지 placeholder (선택)
+const onImgError = (e) => {
+  e.target.onerror = null
+  e.target.src = '/images/placeholder.png' // public/images/placeholder.png 준비해두면 깔끔
+}
+
 const normalizeTags = (arr) =>
   arr
     .map(t => t.startsWith('#') ? t : `#${t}`)
-    .filter((t, i, a) => a.indexOf(t) === i) // 중복 제거
+    .filter((t, i, a) => a.indexOf(t) === i)
 
-/** 한 행 → 랜드마크 객체 매핑 (id 자동 생성 포함) */
+// detail 안에 HTML 태그가 있는지 간단 감지
+const hasHtml = (s) => /<\s*[a-z][\s\S]*>/i.test(s || '')
+
+/** 한 행 → 랜드마크 객체 매핑 */
 const mapRowToLandmark = (r, idx) => {
   const name = r.name || r.Name || r.이름 || r['명칭'] || '이름없음'
 
@@ -180,6 +219,10 @@ const mapRowToLandmark = (r, idx) => {
   if (r.guide_closed || r.쉬는날) guide.push({ label: '쉬는날', value: r.guide_closed || r.쉬는날 })
   if (r.guide_hours || r.이용시간) guide.push({ label: '이용시간', value: r.guide_hours || r.이용시간 })
 
+  // 엑셀 '개요'도 기본정보 표에 노출
+  const overviewRaw = (r['개요'] ?? r.개요 ?? '').toString().trim()
+  if (overviewRaw) basic.push({ label: '개요', value: overviewRaw })
+
   // 자유 확장: basic:라벨 / guide:라벨
   Object.keys(r).forEach(k => {
     const low = k.toLowerCase()
@@ -187,10 +230,16 @@ const mapRowToLandmark = (r, idx) => {
     if (low.startsWith('guide:')) guide.push({ label: k.slice(6).trim(), value: r[k] })
   })
 
-  // 태그: tags / 카테고리 / category 모두 합침
+  // 태그
   const tagFromTags = splitList(r.tags ?? r.Tags ?? r.태그 ?? '')
   const tagFromCategory = splitList(r['카테고리'] ?? r['category'] ?? '')
   const tags = normalizeTags([...tagFromTags, ...tagFromCategory])
+
+  // 상세(개요)
+  const detailRaw = (
+    r.detail ?? r.Detail ?? r.상세 ?? r['상세정보'] ?? r['개요'] ??
+    r.overview ?? r.Overview ?? r.소개 ?? r.description ?? r.Description ?? ''
+  ).toString().trim()
 
   return {
     id: String(r.id ?? r.ID ?? r.아이디 ?? r.No ?? (idx + 1)),
@@ -199,8 +248,8 @@ const mapRowToLandmark = (r, idx) => {
     image: images[0]?.src || '',
     images,
     tags,
-    description: r.description ?? r.Description ?? r.소개 ?? '',
-    detail: r.detail ?? r.Detail ?? r.상세 ?? r['상세정보'] ?? r['개요'] ?? '',
+    description: (r.description ?? r.Description ?? r.소개 ?? '').toString().trim(),
+    detail: detailRaw,
     basic,
     guide,
   }
@@ -239,18 +288,23 @@ onMounted(loadExcel)
 /** 라우트 id에 맞는 랜드마크 선택 */
 watchEffect(() => {
   const id = String(route.params.id ?? '')
-  landmark.value =
-    landmarks.value.find(x => String(x.id) === id) ??
-    landmarks.value[0] ??
-    null
+  const list = landmarks.value
+
+  // 1) id(slug) 정확 일치
+  const byStringId = list.find(x => String(x.id) === id)
+
+  // 2) 숫자면 1-based 인덱스
+  const byIndex = /^\d+$/.test(id) ? list[Number(id) - 1] : undefined
+
+  landmark.value = byStringId ?? byIndex ?? list[0] ?? null
 
   currentIndex.value = 0
-  tab.value = 'guide'
   isDetailExpanded.value = false
   nextTick(() => {
     thumbsEl.value?.scrollTo({ left: 0 })
     measureOverflow()
   })
+  tab.value = (landmark.value?.detail?.trim() ? 'detail' : 'basic')
 })
 
 /** 갤러리 소스 */
@@ -260,6 +314,10 @@ const gallery = computed(() => {
     ? landmark.value.images
     : (landmark.value.image ? [{ src: landmark.value.image, alt: landmark.value.name }] : [])
 })
+
+/** 상세 HTML 여부 및 표시값 */
+const detailIsHtml = computed(() => hasHtml(landmark.value?.detail))
+const detailDisplay = computed(() => landmark.value?.detail || '')
 
 /** 갤러리 이동 */
 const go = (i) => {
@@ -297,7 +355,13 @@ const measureOverflow = () => {
 }
 
 watchEffect(() => {
-  if (tab.value === 'detail') nextTick(measureOverflow)
+  if (tab.value === 'detail') {
+    nextTick(() => {
+      // HTML 바인딩 완료 뒤 한 번 더 측정
+      measureOverflow()
+      requestAnimationFrame(measureOverflow)
+    })
+  }
 })
 
 const onResize = () => { if (tab.value === 'detail') measureOverflow() }
@@ -373,4 +437,39 @@ h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #222; line-hei
   .content-wrapper { grid-template-columns: 1fr; gap: 28px; }
   .sticky-sidebar { position: static; }
 }
+.sticky-sidebar { position: sticky; top: 88px; }
+
+/* 근처 숙소 카드 */
+.nearby-hotel-card {
+  position: relative;
+  padding: 24px 22px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(18, 28, 45, 0.08);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.nearby-hotel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, #3b82f6, #22c55e, #06b6d4);
+  opacity: .9;
+}
+.nearby-hotel-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(18, 28, 45, 0.12); }
+.nearby-hotel-card h3 { margin: 8px 0 10px; font-size: 18px; font-weight: 800; color: #111827; letter-spacing: -0.2px; }
+.nearby-hotel-card p { margin: 0 0 18px; font-size: 14.5px; line-height: 1.55; color: #4b5563; }
+
+.btn-find-hotels {
+  display: inline-flex; align-items: center; gap: 10px; padding: 11px 16px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; font-weight: 700;
+  border-radius: 10px; text-decoration: none; box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
+  transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
+}
+.btn-find-hotels:hover { transform: translateY(-1px); background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 10px 18px rgba(29, 78, 216, 0.32); }
+.btn-find-hotels::before { content: "🔎"; font-size: 16px; line-height: 1; }
+
+.bottom-sidebar { margin-top: 28px; }
 </style>

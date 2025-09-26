@@ -8,6 +8,7 @@ public class PaymentResponseDTO {
     private final Integer reservationId;
     private final String orderId;
     private final Long amount;
+    private final String reservationStatus;
 
     // Payment 엔티티를 받아서 DTO를 생성하는 생성자
     public PaymentResponseDTO(Payment payment) {
@@ -15,5 +16,6 @@ public class PaymentResponseDTO {
         this.reservationId = payment.getReservation().getReId();
         this.orderId = payment.getOrderId();
         this.amount = payment.getAmount();
+        this.reservationStatus = payment.getReservation().getStatus();
     }
 }

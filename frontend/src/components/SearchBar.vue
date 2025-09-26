@@ -1,57 +1,62 @@
 <template>
   <section class="search-section" ref="searchSectionRef">
     <div class="content-wrapper">
-      <form class="main-search-bar" ref="barRef" @submit.prevent="search">
-        <!-- 목적지 -->
-        <div
-          class="search-input-group destination"
-          ref="destinationGroup"
-          @click.stop="openDestinationPanelAndFocus"
-        >
-          <span class="icon-location"></span>
-          <input
-            ref="destinationInput"
-            type="text"
-            placeholder="어디로 떠날까요?"
-            v-model="destination"
-            @focus="openDestinationPanel"
-            @input="onDestinationInput"
-            @keydown.esc="clearDestination"
-          />
-          <button
-            v-if="destination"
-            type="button"
-            class="clear-btn"
-            @mousedown.prevent
-            @click.stop="clearDestination"
-            aria-label="입력 지우기"
+
+      <!-- 회색 직사각형: 검색바 전체를 감싸는 표면 -->
+      <div class="search-surface">
+        <!-- 메인 검색바 -->
+        <form class="main-search-bar" ref="barRef" @submit.prevent="search">
+          <!-- 1행: 목적지 (아이콘 없음) -->
+          <div
+            class="search-input-group destination"
+            ref="destinationGroup"
+            @click.stop="openDestinationPanelAndFocus"
           >
-            ×
-          </button>
-        </div>
+            <input
+              ref="destinationInput"
+              type="text"
+              placeholder="어디로 떠날까요?"
+              v-model="destination"
+              @focus="openDestinationPanel"
+              @input="onDestinationInput"
+              @keydown.esc="clearDestination"
+            />
+            <button
+              v-if="destination"
+              type="button"
+              class="clear-btn"
+              @mousedown.prevent
+              @click.stop="clearDestination"
+              aria-label="입력 지우기"
+            >×</button>
+          </div>
 
-        <!-- 날짜 -->
-        <div class="search-input-group dates" ref="datesBtn" @click.stop="toggleCalendar">
-          <span class="icon-calendar"></span>
-          <span class="date-text">{{ checkInText }}</span>
-          <span class="date-separator">-</span>
-          <span class="date-text">{{ checkOutText }}</span>
-          <span class="nights-badge" v-if="nights">{{ nights }}박</span>
-        </div>
+          <!-- 2행: 날짜 (왼쪽) -->
+          <div class="search-input-group dates" ref="datesBtn" @click.stop="toggleCalendar">
+            <div class="date-box">
+              <div class="date-main">{{ checkInMain }}</div>
+              <div class="date-sub">{{ checkInDow }}</div>
+            </div>
 
-        <!-- 인원 -->
-        <div class="search-input-group guests" ref="guestBtn" @click.stop="toggleGuestSelector">
-          <span class="icon-guests"></span>
-          <span>{{ guestsSummary }}</span>
-        </div>
+            <div class="date-divider"></div>
 
-        <!-- 검색 -->
-        <button type="submit" class="search-button">
-          <span class="icon-search"></span> 검색
-        </button>
-      </form>
+            <div class="date-box">
+              <div class="date-main">{{ checkOutMain }}</div>
+              <div class="date-sub">{{ checkOutDow }}</div>
+            </div>
+          </div>
 
-      <!-- 목적지 패널 (body로 텔레포트) -->
+          <!-- 2행: 인원/객실 (오른쪽) -->
+          <div class="search-input-group guests" ref="guestBtn" @click.stop="toggleGuestSelector">
+            <span class="guests-main">{{ guestsSummary }}</span>
+          </div>
+
+          <!-- 3행: 검색 버튼 (가운데) -->
+          <button type="submit" class="search-button">검색하기</button>
+        </form>
+      </div>
+
+      <!-- 목적지 추천 패널 -->
       <teleport to="body">
         <div
           v-if="isDestinationOpen"
@@ -85,7 +90,7 @@
         </div>
       </teleport>
 
-      <!-- 달력 팝업 (body로 텔레포트) -->
+      <!-- 달력 팝업 -->
       <teleport to="body">
         <div
           v-if="isCalendarOpen"
@@ -126,7 +131,7 @@
         </div>
       </teleport>
 
-      <!-- 인원/객실 팝업 (body로 텔레포트) -->
+      <!-- 인원/객실 팝업 -->
       <teleport to="body">
         <div
           v-if="isGuestSelectorOpen"
@@ -155,7 +160,7 @@
 
 <script setup>
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router';
 
 /* ===== 상태 ===== */
 const searchSectionRef = ref(null);
@@ -182,48 +187,53 @@ const checkOut = ref(null);
 const rooms = ref(1);
 const persons = ref(2);
 
-const router = useRouter()  
+const router = useRouter();
 const route = useRoute();
+
+/* 요일 배열 */
+const DOW = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 
 const guestTypes = [
   { type: 'rooms',   label: '객실', min: 1, max: 5 },
   { type: 'persons', label: '인원', min: 1, max: 20 },
 ];
 
+/* 오늘/내일 계산(00:00 고정) */
+const todayBase = new Date(); todayBase.setHours(0,0,0,0);
+const tomorrowBase = new Date(todayBase); tomorrowBase.setDate(tomorrowBase.getDate() + 1);
+
 onMounted(() => {
-  // 쿼리 파라미터에서 값 가져오기
+  // URL 쿼리 우선
   if (route.query.region) destination.value = route.query.region;
   if (route.query.startDate) checkIn.value = new Date(route.query.startDate);
   if (route.query.endDate) checkOut.value = new Date(route.query.endDate);
   if (route.query.rooms) rooms.value = parseInt(route.query.rooms);
   if (route.query.persons) persons.value = parseInt(route.query.persons);
+
+  // 쿼리가 없다면 기본값: 오늘 / 내일
+  if (!checkIn.value)  checkIn.value  = new Date(todayBase);
+  if (!checkOut.value) checkOut.value = new Date(tomorrowBase);
 });
 
-/* ===== 공통 close ===== */
+/* 팝업 닫기/외부클릭 */
 const closeAllPopups = () => {
   isCalendarOpen.value = false;
   isGuestSelectorOpen.value = false;
   isDestinationOpen.value = false;
 };
-
-/* 바깥 클릭: 텔레포트된 팝업은 섹션 밖이라 contains 체크가 안 됨 → .sb-popover 제외 */
 const handleClickOutside = (e) => {
   if (e.target.closest('.sb-popover')) return;
   if (searchSectionRef.value && !searchSectionRef.value.contains(e.target)) {
     closeAllPopups();
   }
 };
-onMounted(() => document.addEventListener('click', handleClickOutside));
+onMounted(() => document.addEventListener('click', handleClickOutside, true));
 onUnmounted(() => document.removeEventListener('click', handleClickOutside, true));
 
-/* ===== 위치 계산 유틸 (fixed 기준) ===== */
+/* 위치 계산 */
 const rectToPos = (el, extraBottom = 8, fullWidth = false) => {
   const r = el.getBoundingClientRect();
-  return {
-    top: Math.round(r.bottom + extraBottom),
-    left: Math.round(r.left),
-    width: fullWidth ? Math.round(r.width) : undefined,
-  };
+  return { top: Math.round(r.bottom + extraBottom), left: Math.round(r.left), width: fullWidth ? Math.round(r.width) : undefined };
 };
 const updateAllPositions = () => {
   if (isDestinationOpen.value && destinationGroup.value) {
@@ -248,7 +258,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateAllPositions, true);
 });
 
-/* ===== 목적지 패널 ===== */
+/* 목적지 패널 */
 const openDestinationPanel = async () => {
   isCalendarOpen.value = false;
   isGuestSelectorOpen.value = false;
@@ -260,19 +270,11 @@ const openDestinationPanelAndFocus = async () => {
   await openDestinationPanel();
   destinationInput.value?.focus();
 };
-const onDestinationInput = () => {
-  if (!isDestinationOpen.value) openDestinationPanel();
-};
-const pickDestination = (d) => {
-  destination.value = d.name;
-  isDestinationOpen.value = false;
-};
-const clearDestination = () => {
-  destination.value = '';
-  nextTick(() => destinationInput?.value?.focus?.());
-};
+const onDestinationInput = () => { if (!isDestinationOpen.value) openDestinationPanel(); };
+const pickDestination = (d) => { destination.value = d.name; isDestinationOpen.value = false; };
+const clearDestination = () => { destination.value = ''; nextTick(() => destinationInput?.value?.focus?.()); };
 
-/* ===== 달력 ===== */
+/* 달력 */
 const toggleCalendar = async () => {
   isGuestSelectorOpen.value = false;
   isDestinationOpen.value = false;
@@ -280,18 +282,8 @@ const toggleCalendar = async () => {
   await nextTick();
   updateAllPositions();
 };
-
-/* ===== 헬퍼 함수 추가 ===== */
-const formatDateToYYYYMMDD = (date) => {
-  if (!date) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1, 두 자리로 맞춤
-  const day = String(date.getDate()).padStart(2, '0');      // 두 자리로 맞춤
-  return `${year}-${month}-${day}`;
-};
-
 const weekDays = ['일','월','화','수','목','금','토'];
-const today = new Date(); today.setHours(0,0,0,0);   // 오늘 00:00 기준 고정
+const today = new Date(); today.setHours(0,0,0,0);
 const hoveredDate = ref(null);
 
 const generateMonths = (numMonths = 2, offset = 0) => {
@@ -311,7 +303,6 @@ const generateMonths = (numMonths = 2, offset = 0) => {
   }
   return monthsArray;
 };
-
 const monthOffset = ref(0);
 const months = ref(generateMonths(2, monthOffset.value));
 const updateMonths = () => { months.value = generateMonths(2, monthOffset.value); };
@@ -327,23 +318,11 @@ const selectDate = (y, m, d) => {
     else { checkOut.value = checkIn.value; checkIn.value = date; }
   }
 };
-
-// ⛔ 지난 날짜는 비활성화
 const isDisabled = (y, m, d) => {
   const date = new Date(y, m - 1, d);
   date.setHours(0,0,0,0);
-  return date < today;  // 오늘 이전은 선택 불가
+  return date < today;
 };
-
-const checkInText = computed(() =>
-  checkIn.value ? `${checkIn.value.getMonth() + 1}/${checkIn.value.getDate()}` : '날짜 선택'
-);
-const checkOutText = computed(() =>
-  checkOut.value ? `${checkOut.value.getMonth() + 1}/${checkOut.value.getDate()}` : '날짜 선택'
-);
-const nights = computed(() =>
-  checkIn.value && checkOut.value ? Math.floor((checkOut.value - checkIn.value) / 86400000) : 0
-);
 const isSelectedDate = (y, m, d) => {
   const date = new Date(y, m - 1, d); date.setHours(0,0,0,0);
   return (checkIn.value && date.getTime() === checkIn.value.getTime()) ||
@@ -362,31 +341,21 @@ const isPreviewRange = (y, m, d) => {
 };
 const onDayHover = (y, m, d) => {
   const date = new Date(y, m - 1, d); date.setHours(0,0,0,0);
-  if (date < today) return;                // 지난 날짜는 미리보기 제외
+  if (date < today) return;
   if (!checkIn.value || checkOut.value) { hoveredDate.value = null; return; }
   hoveredDate.value = date;
 };
 const onDayHoverEnd = () => { hoveredDate.value = null; };
 
-/* ===== 인원/객실 ===== */
+/* 인원/객실 */
 const getValue = (type) => (type === 'rooms' ? rooms.value : persons.value);
 const setValue = (type, v) => { if (type === 'rooms') rooms.value = v; else persons.value = v; };
-const increment = (type) => {
-  const meta = guestTypes.find(g => g.type === type);
-  const cur = getValue(type);
-  if (cur < meta.max) { setValue(type, cur + 1);}
-};
-const decrement = (type) => {
-  const meta = guestTypes.find(g => g.type === type);
-  const cur = getValue(type);
-  if (cur > meta.min) { setValue(type, cur - 1);}
-};
+const increment = (type) => { const meta = guestTypes.find(g => g.type === type); const cur = getValue(type); if (cur < meta.max) setValue(type, cur + 1); };
+const decrement = (type) => { const meta = guestTypes.find(g => g.type === type); const cur = getValue(type); if (cur > meta.min) setValue(type, cur - 1); };
 const confirmGuests = () => { closeAllPopups(); };
-const guestsSummary = computed(() =>
-  `객실 ${rooms.value}개, 인원 ${persons.value}명`
-);
+const guestsSummary = computed(() => `성인 ${persons.value}명 · 객실 ${rooms.value}개`);
 
-/* ===== 목적지 추천 데이터 ===== */
+/* 목적지 추천 데이터 */
 const destinations = ref([
   { name: '강릉', count: 1180, tags: ['스키', '해변'] },
   { name: '서울', count: 5945, tags: ['쇼핑', '레스토랑'] },
@@ -403,7 +372,15 @@ const filteredDestinations = computed(() => {
   );
 });
 
-/* 인원/달력 토글 시 위치계산 */
+/* 날짜 텍스트 (두 줄) */
+const fmtDateMain = (d) => `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+const fmtDow = (d) => DOW[d.getDay()];
+const checkInMain  = computed(() => checkIn.value  ? fmtDateMain(checkIn.value)  : fmtDateMain(todayBase));
+const checkOutMain = computed(() => checkOut.value ? fmtDateMain(checkOut.value) : fmtDateMain(tomorrowBase));
+const checkInDow   = computed(() => checkIn.value  ? fmtDow(checkIn.value)  : fmtDow(todayBase));
+const checkOutDow  = computed(() => checkOut.value ? fmtDow(checkOut.value) : fmtDow(tomorrowBase));
+
+/* 토글 */
 const toggleGuestSelector = async () => {
   isCalendarOpen.value = false;
   isDestinationOpen.value = false;
@@ -412,121 +389,113 @@ const toggleGuestSelector = async () => {
   updateAllPositions();
 };
 
+/* 검색 */
 const search = async () => {
-  if (!destination.value || destination.value.trim() === '') {
-    alert('목적지를 입력해주세요.');
-    return;
-  }
-
-  // 날짜 체크
-  if (!checkIn.value || !checkOut.value) {
-    alert('체크인/체크아웃 날짜를 선택해주세요.');
-    return;
-  }
-
-  // 객실 수/인원 체크
-  if (!rooms.value || rooms.value <= 0) {
-    alert('객실 수는 1개 이상이어야 합니다.');
-    return;
-  }
-  if (!persons.value || persons.value <= 0) {
-    alert('인원 수는 1명 이상이어야 합니다.');
-    return;
-  }
-  
-  const requestBody = {
-    region: destination.value,
-    startDate: formatDateToYYYYMMDD(checkIn.value),
-    endDate: formatDateToYYYYMMDD(checkOut.value),
-    numberOfRooms: rooms.value,
-    numberOfPeople: persons.value,
-  };
-  
-  // --- 🕵️‍♂️ 디버깅 코드 위치 (확인용) ---
-  console.log("검색 시작! 다음 쿼리로 이동합니다:", {
-    region: requestBody.region,
-    startDate: requestBody.startDate,
-    endDate: requestBody.endDate,
-    rooms: requestBody.numberOfRooms,
-    persons: requestBody.numberOfPeople,
-  });
+  if (!destination.value || destination.value.trim() === '') return alert('목적지를 입력해주세요.');
+  if (!checkIn.value || !checkOut.value) return alert('체크인/체크아웃 날짜를 선택해주세요.');
+  if (!rooms.value || rooms.value <= 0) return alert('객실 수는 1개 이상이어야 합니다.');
+  if (!persons.value || persons.value <= 0) return alert('인원 수는 1명 이상이어야 합니다.');
 
   router.push({
     path: '/search',
-      query: {              // URL 파라미터로 넘기기 (조건 확인용)
-        region: requestBody.region,
-        startDate: requestBody.startDate,
-        endDate: requestBody.endDate,
-        rooms: requestBody.numberOfRooms,
-        persons: requestBody.numberOfPeople,
-      }
-    });
-  }  
+    query: {
+      region: destination.value,
+      startDate: checkIn.value.toISOString().split('T')[0],
+      endDate: checkOut.value.toISOString().split('T')[0],
+      rooms: rooms.value,
+      persons: persons.value,
+    }
+  });
+};
 </script>
 
 <style scoped>
-/* ====== 베이스 ====== */
+/* ===== 컨테이너 ===== */
 .search-section{ position:relative; z-index:5; }
 .content-wrapper{ max-width:1200px; margin:0 auto; padding:24px 16px 0; box-sizing:border-box; }
 
+/* 회색 직사각형(이미지 레퍼런스) */
+.search-surface{
+  background:#f5f6f8;               /* 연회색 */
+  border:1px solid #e7e9ee;         /* 옅은 테두리 */
+  border-radius:16px;               /* 둥근 모서리 */
+  padding:16px;                     /* 안쪽 여백 */
+  box-shadow:0 18px 40px rgba(0,0,0,.08); /* 은은한 그림자 */
+}
+
+/* ===== 레이아웃: 1행 목적지 / 2행 날짜+게스트 / 3행 버튼 ===== */
 .main-search-bar{
-  position:relative;
-  display:grid;
-  grid-template-columns: 1.3fr 1fr 1fr auto;
-  align-items:center;
-  background:#fff;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    "dest   dest   dest"
+    "dates  guests guests"
+    "submit submit submit";
+  row-gap: 12px;
+  align-items: center;
+  background:#fff;                  /* 내부는 흰색 카드 */
   border:1px solid #e5e7eb;
-  border-radius:14px;
-  box-shadow:0 14px 40px rgba(0,0,0,.06);
+  border-radius:12px;
+  box-shadow:none;
+  padding: 12px;
 }
+
 .search-input-group{
-  display:flex; align-items:center; gap:10px;
-  padding:16px 18px; min-height:56px;
-  border-right:1px solid #f0f2f4;
+  display:flex; align-items:center; gap:14px;
+  min-height:64px;                  /* 살짝 높게 */
+  padding:16px 18px;
+  border-right:0;
 }
-.search-input-group:last-of-type{ border-right:0; }
-.search-input-group input{ border:none; outline:none; width:100%; font-size:15px; color:#111827; }
+.search-input-group input{ border:none; outline:none; width:100%; font-size:16px; color:#111827; }
 
-.icon-location,.icon-calendar,.icon-guests{
-  width:16px; height:16px; display:inline-block; border-radius:3px; background:#9ca3af; opacity:.8;
-}
+/* 영역 배치 */
+.search-input-group.destination{ grid-area: dest; border-bottom:1px solid #f0f2f4; position:relative; }
+.search-input-group.dates{ grid-area: dates; border-right:1px solid #f0f2f4; }
+.search-input-group.guests{ grid-area: guests; }
 
-.search-button{
-  background:#2563eb; color:#fff; height:44px; margin:0 10px 0 0; padding:0 18px;
-  border:none; border-radius:10px; font-weight:700; cursor:pointer;
-  transition: box-shadow .2s ease, transform .05s ease;
-}
-.search-button:hover{ box-shadow:0 10px 20px rgba(37,99,235,.25); }
-.search-button:active{ transform:translateY(1px); }
+/* 날짜 UI (두 줄) */
+.dates{ display:flex; align-items:center; gap:18px; }
+.date-box{ display:flex; flex-direction:column; line-height:1.2; }
+.date-main{ font-weight:700; color:#111827; font-size:15px; }
+.date-sub{  font-size:13px; color:#6b7280; margin-top:4px; }
+.date-divider{ width:1px; height:36px; background:#e5e7eb; align-self:center; }
 
-.date-text{ font-weight:600; color:#111827; }
-.date-separator{ margin:0 6px; color:#9ca3af; }
-.nights-badge{
-  margin-left:8px; background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px;
-  padding:4px 8px; border-radius:999px;
-}
+/* 인원/객실 텍스트 */
+.guests-main{ font-weight:600; color:#111827; }
 
-/* clear 버튼 */
-.destination{ position:relative; }
+/* 입력 지우기 버튼 */
 .clear-btn{
   position:absolute; right:12px; top:50%; transform:translateY(-50%);
-  width:26px; height:26px; border:1px solid rgba(148,163,184,.55);
-  border-radius:50%; background:linear-gradient(180deg,#fff,#f8fafc);
+  width:28px; height:28px; border:1px solid rgba(148,163,184,.55);
+  border-radius:50%; background:#fff;
   display:grid; place-items:center; cursor:pointer;
   transition: box-shadow .2s ease, transform .08s ease, border-color .2s ease;
+  line-height:1; color:#475569; font-size:16px;
 }
 .clear-btn:hover{ box-shadow:0 6px 16px rgba(15,23,42,.12); border-color:#94a3b8; }
 .clear-btn:active{ transform:translateY(-50%) scale(.96); }
-.clear-btn > *{ line-height:1; color:#475569; font-size:16px; }
 
-/* ====== 공통: 텔레포트 팝오버 ====== */
-.sb-popover{
-  position:fixed;               /* 바디 기준으로 고정 */
-  z-index:1000;
+/* 검색 버튼 */
+.search-button{
+  grid-area: submit;
+  justify-self: center;
+  align-self: center;
+  width: clamp(260px, 42%, 480px);
+  height: 54px;
+  border-radius: 12px;
+  background:#4f7bf7; color:#fff;   /* 이미지 느낌의 블루 */
+  border:none; font-weight:800; cursor:pointer; font-size:16px;
+  box-shadow:0 10px 20px rgba(79,123,247,.25);
+  transition: transform .05s ease, box-shadow .2s ease;
 }
+.search-button:hover{ box-shadow:0 14px 26px rgba(79,123,247,.32); }
+.search-button:active{ transform:translateY(1px); }
 
-/* ====== 목적지 패널 ====== */
-/* ====== 목적지 패널 ====== */
+/* ===== 공통 팝오버 ===== */
+.sb-popover{ position:fixed; z-index:1000; }
+
+/* ===== 목적지 패널 ===== */
 .dest-suggest {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -534,209 +503,41 @@ const search = async () => {
   box-shadow: 0 18px 40px rgba(0, 0, 0, .14);
   padding: 14px 8px 16px;
 }
-
-.dest-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 0 8px;
+.dest-tabs { display:flex; gap:8px; margin-bottom:10px; padding:0 8px; }
+.dest-tabs .tab{
+  padding:6px 12px; border-radius:999px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px;
 }
-
-.dest-tabs .tab {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  cursor: pointer;
-  font-size: 13px;
+.dest-tabs .tab.active{ background:#111827; color:#fff; border-color:#111827; }
+.dest-header{ font-weight:600; font-size:14px; color:#6b7280; margin:4px 10px 10px; }
+.dest-list{
+  list-style:none; margin:0; padding:0 8px 8px;
+  display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;
 }
-
-.dest-tabs .tab.active {
-  background: #111827;
-  color: #fff;
-  border-color: #111827;
+.dest-row{
+  width:100%; text-align:left; padding:10px 12px; border-radius:10px; background:#fff;
+  border:1px solid transparent; cursor:pointer;
 }
+.dest-row:hover{ background:#fafafa; border-color:#e5e7eb; }
+.dest-title{ font-size:15px; font-weight:500; color:#111827; }
+.dest-title .count{ margin-left:6px; font-weight:500; color:#6b7280; }
+.dest-tags{ font-size:13px; color:#6b7280; margin-top:2px; }
+.dest-empty{ padding:10px 12px; color:#6b7280; }
+@media (max-width: 820px){ .dest-list{ grid-template-columns:1fr; } }
 
-.dest-header {
-  font-weight: 600;
-  font-size: 14px;
-  color: #6b7280;
-  margin: 4px 10px 10px;
+/* ===== 달력 ===== */
+.calendar-popup{
+  display:flex; gap:20px; background:#fff; border:1px solid #e5e7eb; border-radius:14px;
+  padding:12px 20px 24px; box-shadow:0 18px 40px rgba(0,0,0,.14); width:auto; box-sizing:border-box;
 }
-
-.dest-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 8px 8px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3개의 열로 변경 */
-  gap: 16px; /* 간격을 더 넓게 설정 */
-}
-
-.dest-row {
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-
-.dest-row:hover {
-  background: #fafafa;
-  border-color: #e5e7eb;
-}
-
-.dest-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: #111827;
-}
-
-.dest-title .count {
-  margin-left: 6px;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.dest-tags {
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 2px;
-}
-
-.dest-empty {
-  padding: 10px 12px;
-  color: #6b7280;
-}
-
-@media (max-width: 820px) {
-  .dest-list {
-    grid-template-columns: 1fr; /* 화면 크기가 작을 때는 1개의 열로 표시 */
-  }
-}
-
-
-/* ====== 달력 ====== */
-/* ====== 달력 ====== */
-.calendar-popup {
-  display: flex; /* 두 달을 나란히 표시 */
-  gap: 20px; /* 두 달 사이의 간격 */
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 12px 20px 24px; /* padding 조정 */
-  box-shadow: 0 18px 40px rgba(0, 0, 0, .14);
-  width: auto; /* 부모 영역에 맞게 크기 조정 */
-  box-sizing: border-box;
-}
-
-.calendar-month {
-  width: 50%; /* 각 달이 부모 영역의 절반씩 차지 */
-  padding-left: 0;
-}
-
-.calendar-month + .calendar-month::before {
-  display: none; /* 두 달 사이의 구분선 없애기 */
-}
-
-.month-name {
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #111827;
-}
-
-.days-header {
-  color: #6b7280;
-  font-size: 12px;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr); /* 7일이 가로로 정렬되도록 설정 */
-  gap: 6px;
-}
-
-.days-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr); /* 7일이 가로로 정렬되도록 설정 */
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.day {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background .15s ease, color .15s ease, opacity .15s ease, box-shadow .15s ease;
-}
-
-.day.empty {
-  visibility: hidden;
-}
-
-.day.disabled {
-  opacity: .38;
-  pointer-events: none;
-  cursor: default;
-}
-
-.day.disabled:hover {
-  box-shadow: none;
-}
-
-.day:not(.disabled):hover {
-  box-shadow: inset 0 0 0 2px rgba(25, 118, 210, .25);
-}
-
-.day.selected {
-  background: #1976d2;
-  color: #fff;
-}
-
-.day.inRange {
-  background: rgba(25, 118, 210, .18);
-}
-
-.day.previewRange {
-  background: rgba(25, 118, 210, .12);
-  box-shadow: inset 0 0 0 1px rgba(25, 118, 210, .2);
-}
-
-.calendar-nav {
-  position: absolute;
-  top: 10px;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
-  font-size: 22px;
-  line-height: 36px;
-  text-align: center;
-  cursor: pointer;
-  user-select: none;
-  z-index: 2;
-}
-
-.calendar-nav.prev {
-  left: 10px;
-}
-.calendar-nav.next {
-  right: 10px;
-}
-
-
-/* ⛔ 지난 날짜 비활성 스타일 */
-.day.disabled{
-  opacity:.38;
-  pointer-events:none;
-  cursor:default;
-}
+.calendar-month{ width:50%; }
+.month-name{ font-weight:700; margin-bottom:6px; color:#111827; }
+.days-header{ color:#6b7280; font-size:12px; display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.days-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:8px; }
+.day{ display:inline-flex; align-items:center; justify-content:center; height:36px; border-radius:8px; cursor:pointer;
+      transition: background .15s ease, color .15s ease, opacity .15s ease, box-shadow .15s ease; }
+.day.empty{ visibility:hidden; }
+.day.disabled{ opacity:.38; pointer-events:none; cursor:default; }
 .day.disabled:hover{ box-shadow:none; }
-
 .day:not(.disabled):hover{ box-shadow: inset 0 0 0 2px rgba(25,118,210,.25); }
 .day.selected{ background:#1976d2; color:#fff; }
 .day.inRange{ background:rgba(25,118,210,.18); }
@@ -747,7 +548,7 @@ const search = async () => {
 }
 .calendar-nav.prev{ left:10px; } .calendar-nav.next{ right:10px; }
 
-/* ====== 게스트 ====== */
+/* ===== 게스트 ===== */
 .guest-selector-popup{
   width:280px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px 0;
   box-shadow:0 18px 40px rgba(0,0,0,.14);

@@ -75,4 +75,26 @@ public class ReservationService {
     public Reservation findReservationById(Integer reservationId) {
         return reservationRepository.findById(reservationId).orElse(null);
     }
+
+    @Transactional
+    public void cancelReservation(Integer reservationId) {
+        
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new IllegalArgumentException("해당 예약이 존재하지 않습니다."));
+        
+        reservation.setStatus("예약 취소");
+
+        reservationRepository.save(reservation);
+    }
+
+    @Transactional
+    public void markAsDeleted(Integer reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("예약이 존재하지 않습니다."));
+        if (!"예약 취소".equals(reservation.getStatus())) {
+            throw new RuntimeException("취소된 예약만 삭제할 수 있습니다.");
+        }
+        reservation.setStatus("삭제됨");
+        reservationRepository.save(reservation);
+    }
 }

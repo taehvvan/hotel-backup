@@ -11,6 +11,16 @@
         </div>
 
         <div class="filter-group">
+          <h5>호텔 이름 / 주소 검색</h5>
+          <input
+            type="text"
+            v-model="hotelNameSearchQuery"
+            class="hotel-search-input"
+            placeholder="호텔 이름 또는 주소를 입력하세요"
+          />
+        </div>
+
+        <div class="filter-group">
           <h5>숙소 유형</h5>
           <div class="type-button-group">
             <button

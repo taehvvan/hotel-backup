@@ -68,4 +68,18 @@ public class ReservationController {
         }
         return ResponseEntity.ok(new ReservationResponseDTO(reservation));
     }
+
+    // 예약 취소
+    @PutMapping("/{reservationId}/cancel")
+    public ResponseEntity<String> cancelReservation(@PathVariable Integer reservationId) {
+        reservationService.cancelReservation(reservationId);
+        return ResponseEntity.ok("예약이 취소되었습니다.");
+    }
+
+    // 삭제 (일단 사용자 화면에서)
+    @DeleteMapping("/{reservationId}/delete")
+    public ResponseEntity<String> deleteCancelledReservation(@PathVariable Integer reservationId) {
+        reservationService.markAsDeleted(reservationId);
+        return ResponseEntity.ok("삭제 성공");
+    }
 }

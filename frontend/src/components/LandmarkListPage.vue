@@ -29,7 +29,7 @@
           <!-- 문화재 종류: 멀티 체크박스 + 스크롤(기존 유지) -->
           <div class="dropdown">
             <button class="filter-btn" @click="toggleHeritageDropdown">
-              문화재 종류
+              카테고리
             </button>
             <div v-show="isHeritageDropdownOpen" class="dropdown-content">
               <label v-for="heritage in heritageOptions" :key="heritage" class="checkbox-label">
@@ -113,27 +113,35 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import gyeongjuImage from '@/assets/images/card-gyeongju.jpg';
-import jejuImage from '@/assets/images/card-jeju.jpg';
-import jeonjuImage from '@/assets/images/card-jeonju.jpg';
+import gwangallibeachImage from '@/assets/images/card-gwangalli-beach.jpg';
+import lotteworldtowerseoulsky from '@/assets/images/card-lotte-world-tower-seoul-sky.jpg';
+import sungnyemun from '@/assets/images/card-sungnyemun.jpg';
+import ttukseomhangangpark from '@/assets/images/card-ttukseom-hangang-park.jpg';
+import yisunsinstatue from '@/assets/images/card-yi-sun-sin-statue.jpg';
+import anguksa from '@/assets/images/card-anguksa.jpg';
+import doknipmun from '@/assets/images/card-doknipmun.jpg';
+import bukhansannationalparkseoul from '@/assets/images/card-bukhansan-national-park-seoul.jpg';
+
 
 const router = useRouter();
 
 // 더미 데이터 (API 연동 시 교체)
+// 새로운 더미 데이터 (기존 데이터에서 교체)
 const allLandmarks = ref([
-  { id: 1, name: '경복궁', location: '서울 종로구', image: gyeongjuImage, tags: ['#고궁', '#역사'], popularity: 5 },
-  { id: 2, name: '성산일출봉', location: '제주 서귀포시', image: jejuImage, tags: ['#자연', '#오름'], popularity: 4 },
-  { id: 3, name: '전주 한옥마을', location: '전북 전주시', image: jeonjuImage, tags: ['#한옥', '#문화'], popularity: 3 },
-  { id: 4, name: '감천 문화마을', location: '부산 사하구', image: gyeongjuImage, tags: ['#마을', '#예술'], popularity: 5 },
-  { id: 5, name: '첨성대', location: '경북 경주시', image: jejuImage, tags: ['#유적', '#신라'], popularity: 4 },
-  { id: 6, name: '수원 화성', location: '경기 수원시', image: jeonjuImage, tags: ['#성곽', '#유네스코'], popularity: 2 },
-  { id: 7, name: '안압지(동궁과 월지)', location: '경북 경주시', image: gyeongjuImage, tags: ['#야경', '#신라'], popularity: 4 },
-  { id: 8, name: '남이섬', location: '강원 춘천시', image: jejuImage, tags: ['#자연', '#드라마'], popularity: 5 },
+  { id: 1, name: '뚝섬한강공원', location: '서울특별시 광진구', image: ttukseomhangangpark, tags: ['#자연', '#강변', '#공원','#휴양'] },
+  { id: 2, name: '숭례문', location: '서울특별시 중구', image: sungnyemun, tags: ['#역사', '#문화재', '#고궁'] },
+  { id: 3, name: '충무공 이순신 동상', location: '서울특별시 종로구', image: yisunsinstatue, tags: ['#역사', '#인물', '#문화', '#동상'] },
+  { id: 7, name: '롯데월드타워 서울스카이', location: '서울특별시 송파구', image: lotteworldtowerseoulsky, tags: ['#도심', '#전망', '#랜드마크', '#고층빌딩'] },
+  { id: 8, name: '광안리해수욕장', location: '부산광역시 수영구', image: gwangallibeachImage, tags: ['#바다', '#휴양', '#해수욕장', '#야경'] },
+  { id: 4, name: '독립문', location: '서울특별시 관악구', image: doknipmun, tags: ['#역사', '#문화재', '#기념비'] },
+  { id: 5, name: '북한산국립공원(서울)', location: '서울특별시 관악구', image: bukhansannationalparkseoul, tags: ['#자연', '#산', '#국립공원'] },
+  { id: 6, name: '안국사', location: '서울특별시 관악구', image: anguksa, tags: ['#사찰', '#문화', '#불교'] }
 ]);
+
 
 // ▼ 옵션들
 const regionOptions = ['서울', '제주', '전주', '부산', '경주', '수원', '춘천']; // 필요시 추가
-const heritageOptions = ['고궁', '자연', '문화', '유적']; // 필요시 '#예술' 등 확장 가능
+const heritageOptions = ['고궁', '자연', '문화', '휴양']; // 필요시 '#예술' 등 확장 가능
 
 // ▼ 선택 상태
 const selectedRegions = ref([]);          // 멀티 지역
