@@ -89,7 +89,7 @@
   import gyeongjuImage from '@/assets/images/card-gyeongju.jpg';
 
   const wishlistItems = ref([]);
-  const token = localStorage.getItem("jwtToken");
+  const token = localStorage.getItem("accessToken");
   const router = useRouter();
 
   const today = new Date();
@@ -105,7 +105,7 @@
   const fetchWishlist = async () => {
     if (!token) return;
     try {
-      const response = await axios.get('/api/wishlist', {
+      const response = await axios.get('http://localhost:8888/api/wishlist', {
         headers: { Authorization: `Bearer ${token}` },
         params: {
           checkIn: checkIn.value,
@@ -127,7 +127,7 @@
   }
 
   router.push({
-    path: `/hotel/${place.hid}`,
+    path: `http://localhost:8888/hotel/${place.hid}`,
       query: {
         region: place.region,
         startDate: checkIn.value,
@@ -142,7 +142,7 @@
   const removeFromWishlist = async (hid) => {
     if (!token || !hid) return;
     try {
-      await axios.delete(`/api/wishlist/${hid}`, {
+      await axios.delete(`http://localhost:8888/api/wishlist/${hid}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       wishlistItems.value = wishlistItems.value.filter(item => item.hid !== hid);
