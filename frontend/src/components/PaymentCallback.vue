@@ -21,66 +21,54 @@ onMounted(async () => {
   // [디버깅] 현재 localStorage 상태 확인
   console.log("현재 localStorage:", JSON.stringify(localStorage, null, 2));
 
+  /*
   // 1. 토스페이먼츠에서 받은 결제 정보 추출
   const query = route.query;
   const orderId = Array.isArray(query.orderId) ? query.orderId[0] : query.orderId;
   const paymentKey = Array.isArray(query.paymentKey) ? query.paymentKey[0] : query.paymentKey;
   const amount = Array.isArray(query.amount) ? query.amount[0] : query.amount;
+  */
+
+  // 1. 토스페이먼츠에서 받은 결제 정보 추출
+  const { paymentKey, orderId, amount } = route.query;
 
   if (!orderId || !paymentKey || !amount) return router.replace('/');
 
-  // 2. 예약 정보 및 전화번호 localStorage에서 불러오기
-  const reservationId = localStorage.getItem('reservationId');
-  const roomId = localStorage.getItem('roomId');
-  const hotelId = localStorage.getItem('hotelId');
-  const userId = localStorage.getItem('userId');          // 회원용
-  const phoneNumber = localStorage.getItem('savedPhoneNumber'); // 비회원용
+  // 2. localStorage에서 저장했던 paymentInfo 객체 불러오기
+  const storedPaymentInfo = localStorage.getItem('paymentInfo');
 
-  // [디버깅] 필수 값 확인
-  console.log("reservationId:", reservationId, "roomId:", roomId, "hotelId:", hotelId, "phoneNumber:", phoneNumber);
-
-  if (!reservationId || !roomId || !hotelId) {
-    console.error("필수 예약 정보 누락!");
+  if (!paymentKey || !orderId || !amount || !storedPaymentInfo) {
+    console.error("결제 처리 실패: 필수 정보가 누락되었습니다.");
+    // 실패 시 localStorage 정리
+    localStorage.removeItem('paymentInfo');
     return router.replace('/');
   }
 
+  const paymentInfo = JSON.parse(storedPaymentInfo);
+
   try {
     const token = localStorage.getItem('accessToken');
-    const isMember = !!token;
-    const headers = isMember ? { Authorization: `Bearer ${token}` } : {};
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-    // [디버깅] 토큰 존재 여부 확인
-    console.log('회원 여부:', isMember, '토큰:', token);
-
-    console.log('POST할 데이터:', {
-      reId: Number(reservationId),
-      rId: Number(roomId),
-      hId: Number(hotelId),
+    const requestData = {
+      reId: paymentInfo.reservationId,
+      rId: paymentInfo.roomId,
+      hId: paymentInfo.hotelId,
       orderId,
-      userId: isMember ? Number(userId) : null,
-      phone: !isMember ? phoneNumber : null,
+      userId: paymentInfo.userId,
+      phone: paymentInfo.phone,
       paymentKey,
-      amount,
+      amount: Number(amount),
       payMethod: 'TOSS_PAY'
-    });
+    };
+
+    console.log('백엔드로 전송할 최종 데이터:', requestData);
+
     // 3. 결제 완료 API 호출
-    await axios.post('http://localhost:8888/api/payments/complete', {
-      reId: parseInt(reservationId, 10),
-      rId: parseInt(roomId, 10),
-      hId: parseInt(hotelId, 10),
-      orderId,
-      userId: isMember ? parseInt(userId) : null,
-      phone: !isMember ? phoneNumber : null,
-      paymentKey,
-      amount,
-      payMethod: 'TOSS_PAY'
-    }, { headers });
+    await axios.post('http://localhost:8888/api/payments/complete', requestData, { headers });
 
     // 4. localStorage 정리
-    localStorage.removeItem('reservationId');
-    localStorage.removeItem('roomId');
-    localStorage.removeItem('hotelId');
-    localStorage.removeItem('savedPhoneNumber');
+    localStorage.removeItem('paymentInfo');
 
     router.push({
       path: '/payment-success',

@@ -8,11 +8,18 @@ public class PaymentRequest {
 
     private Integer pId;
 
-    private Integer rId;
-
+    // Reservation 정보
     private Integer reId;
+    private Integer rId;
+    private Integer hId;
 
-    private String payMethod; // 예: "TOSS_PAY"
-
+    // User 정보 (비회원은 null)
+    private Integer userId;
     private String phone;
+
+    // Toss Payments 정보
+    private String paymentKey;
+    private String orderId;
+    private Long amount;
+    private String payMethod;
 }

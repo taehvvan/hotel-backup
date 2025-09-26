@@ -225,12 +225,14 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed, toRaw } from 'v
 import { useRoute, useRouter } from 'vue-router';
 import { useBookingStore } from '@/stores/booking';
 import { useUserStore } from '@/stores/user';
+import { useAuthStore } from '@/stores/auth';
 import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
 const bookingStore = useBookingStore();
 const userStore = useUserStore();
+const authStore = useAuthStore();
 
 // [수정] hotel 데이터를 담을 반응형 변수. 초기값은 null.
 const hotel = ref(null);
@@ -417,9 +419,9 @@ const goToCheckout = async (room) => {
     
     const reservationData = {
       rId: room.rId,
-      uId: userStore.user?.id || null,
+      uId: authStore.userId,
       // [수정] 반응형 객체에서 값을 가져올 때는 .value를 사용해야 합니다.
-      hId: hotel.value.hid, 
+      hId: hotel.value.hId, 
       checkin: formatDate(checkIn.value),
       checkout: formatDate(checkOut.value),
       people: persons.value,

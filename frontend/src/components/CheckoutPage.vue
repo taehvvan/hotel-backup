@@ -131,10 +131,13 @@ import { useRouter } from 'vue-router';
 import CouponModal from './CouponModal.vue';
 import { useBookingStore } from '@/stores/booking'
 import { watchEffect } from 'vue'
+import { useAuthStore } from '@/stores/auth';
+import axios from 'axios';
 
 const router = useRouter();
 
 const bookingStore = useBookingStore()
+const authStore = useAuthStore();
 
 const isLoading = ref(true);
 
@@ -234,10 +237,13 @@ const formatDiscount = (coupon) => {
 };
 
 const handlePayment = async () => {
-if (isLoading.value) return;
+if (authStore.isLoading) {
+    alert("사용자 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+    return;
+}
 
 // room 객체나 room.rid가 유효한지 한번 더 확인 (최후의 안전장치)
-if (!bookingStore.room || !bookingStore.room.rid) {
+if (!bookingStore.room || !bookingStore.room.rId) {
   return alert('예약 정보가 올바르지 않습니다. 페이지를 새로고침 후 다시 시도해주세요.');
 }
 
@@ -247,6 +253,7 @@ const room = bookingStore.room;
 const hotel = bookingStore.hotel;
 const search = bookingStore.search;
 const reservationId = bookingStore.reservationId;
+const userId = authStore.userId;
 
 if (!room || !hotel || !search) {
   return alert('예약 정보가 올바르지 않습니다.');
@@ -256,22 +263,40 @@ if (!room || !hotel || !search) {
 console.log("bookingStore.room 객체의 실제 내용:", room);
 
 // localStorage에 최소한의 정보 저장
-localStorage.setItem('reservationId', reservationId);
-localStorage.setItem('roomId', bookingStore.room.rid);
-localStorage.setItem('hotelId', bookingStore.hotel.hid);
+// localStorage.setItem('reservationId', reservationId);
+// localStorage.setItem('roomId', bookingStore.room.rId);
+// localStorage.setItem('hotelId', bookingStore.hotel.hId);
 
-const orderId = `room-reservation-${Date.now()}`;
-const amount = finalPrice.value;
+try {
 
-await tossPayments.value.requestPayment('card', {
-  amount,
-  orderId,
-  orderName: `${bookingStore.hotel.hname} - ${bookingStore.room.type}`,
-  customerName: '김태환',
-  customerMobilePhone: phoneNumber.value.replace(/-/g, ''),
-  successUrl: `${window.location.origin}/payment-callback`,
-  failUrl: `${window.location.origin}/payment-fail`
-});
+  // 1. 결제 완료 후 필요한 정보를 localStorage에 저장
+    const paymentInfo = {
+      reservationId: reservationId,
+      roomId: bookingStore.room.rId,
+      hotelId: bookingStore.hotel.hId,
+      userId: authStore.userId,
+      phone: phoneNumber.value,
+      amount: finalPrice.value,
+      orderName: `${bookingStore.hotel.hname} - ${bookingStore.room.type}`
+    };
+
+    // 객체를 JSON 문자열로 변환하여 저장
+    localStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
+
+    const orderId = `room-reservation-${Date.now()}`;
+
+    await tossPayments.value.requestPayment('card', {
+      amount: finalPrice.value,
+      orderId,
+      orderName: paymentInfo.orderName,
+      customerName: authStore.userName || '고객',
+      successUrl: `${window.location.origin}/payment-callback`,
+      failUrl: `${window.location.origin}/payment-fail`
+    });
+    } catch (error) {
+        console.error('결제 정보 업데이트 또는 결제 요청 실패:', error);
+        alert('결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  }
 };
 </script>
 

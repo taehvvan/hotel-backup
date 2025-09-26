@@ -16,13 +16,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Table(name = "payments")
 @Getter
 @Setter
+@NoArgsConstructor
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,6 +53,27 @@ public class Payment {
 
     @Column(name = "phone")
     private String phone;
+
+    @Column(name = "payment_key", nullable = false, unique = true)
+    private String paymentKey;
+
+    @Column(name = "order_id", nullable = false, unique = true)
+    private String orderId;
+
+    @Column(name = "amount", nullable = false)
+    private Long amount;
+
+    @Builder
+    public Payment(UserEntity user, Room room, Reservation reservation, String payMethod, String phone, String paymentKey, String orderId, Long amount) {
+        this.user = user;
+        this.room = room;
+        this.reservation = reservation;
+        this.payMethod = payMethod;
+        this.phone = phone;
+        this.paymentKey = paymentKey;
+        this.orderId = orderId;
+        this.amount = amount;
+    }
 
 }
 

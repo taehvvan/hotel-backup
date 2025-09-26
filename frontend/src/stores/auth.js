@@ -7,6 +7,8 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: false,
     userName: '',
     userRole: '',
+    userId: null,
+    isLoading: true,
   }),
   actions: {
     async login(email, password) {
@@ -22,6 +24,15 @@ export const useAuthStore = defineStore('auth', {
 
         // 토큰을 저장한 후 인자 없이 fetchUserInfo 호출
         await this.fetchUserInfo();
+
+        // role에 따라 페이지 이동
+        if (this.userRole === 'ROLE_ADMIN') {
+          router.push('/admin');
+        } else if (this.userRole === 'ROLE_MANAGER') {
+          router.push('/manager');
+        } else {
+          router.push('/');
+        }
 
       } catch (error) {
         if (error.response) {
@@ -51,17 +62,14 @@ export const useAuthStore = defineStore('auth', {
         this.isLoggedIn = true;
         this.userName = response.data.name;
         this.userRole = response.data.role;
+        this.userId = response.data.id;
     
-        console.log('사용자 role:', this.userRole);
+        console.log('사용자 정보 업데이트:', { 
+            name: this.userName, 
+            role: this.userRole, 
+            id: this.userId 
+        });
     
-        // role에 따라 페이지 이동
-        if (this.userRole === 'ROLE_ADMIN') {
-          router.push('/admin');
-        } else if (this.userRole === 'ROLE_MANAGER') {
-          router.push('/manager');
-        } else {
-          router.push('/');
-        }
       } catch (err) {
         console.error('사용자 정보 조회 실패:', err);
         // 토큰이 유효하지 않으면 로그아웃 처리
@@ -70,28 +78,35 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async checkLoginStatus() {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
-          // fetchUserInfo가 토큰을 직접 가져오도록 수정되었으므로 인자 제거
-          await this.fetchUserInfo();
+      this.isLoading = true;
+
+        try{
+
+          const token = localStorage.getItem('accessToken');
+          if (token) {
+              await this.fetchUserInfo();
+          } else {
+            this.isLoggedIn = false;
+            this.userName = '';
+            this.userRole = '';
+            this.userId = null;
+          }
         } catch (err) {
-          console.error('액세스 토큰이 만료되었거나 유효하지 않습니다.');
-          this.logout();
+            console.error('Login check failed:', err);
+            this.logout();
+        } finally {
+          this.isLoading = false; // ⬅️ [추가] 모든 과정이 끝나면 로딩 완료로 설정
         }
-      } else {
-        this.isLoggedIn = false;
-        this.userName = '';
-        this.userRole = '';
-      }
     },
 
     logout() {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('paymentInfo'); 
       this.isLoggedIn = false;
       this.userName = '';
       this.userRole = '';
+      this.userId = null;
       router.push('/');
     }
   }

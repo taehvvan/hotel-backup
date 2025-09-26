@@ -18,21 +18,22 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/complete")
-    public ResponseEntity<?> completePayment(@RequestBody PaymentRequest dto,
+    public ResponseEntity<?> completePayment(@RequestBody PaymentRequest request,
                                              @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        System.out.println("---------- [PAYMENT-CONTROLLER] 결제 완료 요청 수신 ----------");
+        System.out.println("수신된 DTO: " + request);
 
-        UserEntity user = principalDetails != null ? principalDetails.getUser() : null;
+        /*
+        // Spring Security 컨텍스트에서 인증된 사용자 정보를 가져옴 (가장 신뢰할 수 있는 방법)
+        UserEntity user = (principalDetails != null) ? principalDetails.getUser() : null;
+        */
 
-        System.out.println("디버깅 - reId: " + dto.getReId()); // 로그 확인
+        // 서비스 호출
+        PaymentResponseDTO responseDTO = paymentService.completePayment(request, principalDetails);
 
-        Payment payment = paymentService.completePayment(
-                user,
-                dto.getReId(),
-                dto.getPayMethod(),
-                dto.getPhone()
-        );
-
-        return ResponseEntity.ok(payment);
+        // 성공 응답 반환
+        return ResponseEntity.ok(responseDTO);
     }
 
     // 비회원 예약 확인
