@@ -102,10 +102,10 @@ public class SecurityContext {
                         "/checkout-guest",
                         "/images/**", "/css/**", "/js/**", "/error",
                         "/api/request-reset-password", "/api/verify-code-for-password-reset",
-                        "/api/reset-password","/api/admin/**"
+                        "/api/reset-password","/api/admin/**", "/mypage/reservations"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").hasAnyRole("USER","MANAGER","ADMIN")
-                .requestMatchers("/api/user/**", "/api/mypage", "/api/wishlist", "/api/wishlist/**").hasRole("USER")
+                .requestMatchers("/api/user/**", "/api/mypage", "/mypage/**", "/api/wishlist", "/api/wishlist/**").hasRole("USER")
                 .requestMatchers("/api/manager/**").hasRole("MANAGER")
                
                 .anyRequest().authenticated()

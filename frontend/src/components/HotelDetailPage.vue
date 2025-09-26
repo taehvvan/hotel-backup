@@ -31,7 +31,7 @@
                 <span v-for="i in hotel.star" :key="i" class="level-star">★</span>
               </span>
             </p>
-            <h1>{{ hotel.hname }}</h1>
+            <h1>{{ hotel.hName }}</h1>
           </div>
           <div class="info-price">
             <strong class="price-value">최저가 {{ hotel.minPrice.toLocaleString() }}원</strong>
@@ -102,7 +102,7 @@
           <div class="room-list">
             <div v-for="room in hotel.rooms" :key="room.rId" class="room-card">
               <div class="room-image">
-                <img src="https://placehold.co/200x150?text=Room+Image" :alt="room.type">
+                <img :src="`http://localhost:8888/images/${hotel.type}/${hotel.hId}.jpg`" :alt="room.type">
               </div>
               <div class="room-info">
                 <h4>{{ room.type }}</h4>

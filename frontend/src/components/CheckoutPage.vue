@@ -21,12 +21,16 @@
           <div class="date-picker">
             <div class="date-item">
               <label>체크인</label>
-              <strong>{{ bookingStore.search.startDate ? new Date(bookingStore.search.startDate).toLocaleDateString() : '' }}</strong>
+              <strong>
+                <span v-if="bookingStore.room">⏰ {{ bookingStore.room.checkinTime }}</span>
+              </strong>
             </div>
 
             <div class="date-item">
               <label>체크아웃</label>
-              <strong>{{ bookingStore.search.endDate ? new Date(bookingStore.search.endDate).toLocaleDateString() : '' }}</strong>
+              <strong>
+                <span v-if="bookingStore.room">⏰ {{ bookingStore.room.checkoutTime }}</span>
+              </strong>
             </div>
           </div>
         </section>
@@ -140,6 +144,21 @@ const bookingStore = useBookingStore()
 const authStore = useAuthStore();
 
 const isLoading = ref(true);
+
+const hotel = computed(() => bookingStore.hotel);
+const room = computed(() => bookingStore.room);
+
+const hotelImageUrl = computed(() => {
+  if (!hotel.value?.type || !hotel.value?.hId) {
+    return ''; // 호텔 정보가 없으면 빈 경로 반환
+  }
+  return `http://localhost:8888/images/${hotel.value.type}/${hotel.value.hId}.jpg`;
+});
+
+const roomImage = computed(() => hotelImageUrl.value);
+
+// 사이드바에 표시될 이미지
+const image = computed(() => hotelImageUrl.value);
 
 console.log('검색 조건:', bookingStore.search)
 console.log('호텔 정보:', bookingStore.hotel)

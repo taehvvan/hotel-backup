@@ -109,14 +109,14 @@
             >
               <div class="result-card-inner"> 
                 <div class="image-wrapper">
-                  <img :src="item.image" :alt="item.hname">
+                  <img :src="item.image" :alt="item.hName">
                 </div>
                 <div class="info-wrapper">
                   <div class="info-header">
                     <div class="info-badges">
                       <span class="item-type">{{ item.type }}</span>
                     </div>
-                    <h3>{{ item.hname }}</h3>
+                    <h3>{{ item.hName }}</h3>
                   </div>
                   <div class="rating-section">
                     <div class="rating-card" v-if="item.reviewCount > 0">

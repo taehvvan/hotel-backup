@@ -49,10 +49,14 @@
             <h4>예약 내역</h4>
             <span class="header-line"></span>
           </div>
-          <div v-if="reservations.length > 0" class="reservation-list">
-            <div v-for="reservation in reservations" :key="reservation.id" class="reservation-card">
+          <div v-if="reservations.filter(r => r.status === '예약 완료').length > 0" class="reservation-list">
+            <div 
+              v-for="reservation in reservations.filter(r => r.status === '예약 완료')" 
+              :key="reservation.id" 
+              class="reservation-card"
+            >
               <div class="card-image">
-                <img :src="reservation.image" :alt="reservation.placeName">
+                <img :src="reservation.image" :alt="reservation.placeName" class="selected-hotel-image">
               </div>
               <div class="card-info">
                 <h5 class="place-name">{{ reservation.placeName }}</h5>
@@ -205,12 +209,26 @@
   </template>
   
   <script setup>
-  import { ref, reactive, onMounted } from 'vue';
+  import { ref, reactive, onMounted, computed } from 'vue';
   import axios from 'axios';
   import { useRouter } from 'vue-router';
+  import { useBookingStore } from '@/stores/booking';
   
   const activeTab = ref('reservations');
   
+  const bookingStore = useBookingStore();
+
+  const hotel = computed(() => bookingStore.hotel);
+
+  const hotelImageUrl = computed(() => {
+    if (!hotel.value?.type || !hotel.value?.hId) {
+      return ''; // 호텔 정보가 없으면 빈 경로 반환
+    }
+    return `http://localhost:8888/images/${hotel.value.type}/${hotel.value.hId}.jpg`;
+  });
+
+const hotelImage = computed(() => hotelImageUrl.value);
+
   const userInfo = reactive({
   name: '',
   email: '',
@@ -223,11 +241,7 @@
   //newPassword: '', // 사용하지 않음
   });
   
-  const reservations = ref([
-  { id: 1, placeName: '경주 한옥마을 스테이', image: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', checkIn: '2025.09.20', checkOut: '2025.09.22', guests: '성인 2명', status: 'completed', statusText: '이용 완료' },
-  { id: 2, placeName: '설악산 펜션', image: 'https://images.unsplash.com/photo-1559810842-7041a99f18c2?q=80&w=1969&auto=format&fit=crop', checkIn: '2025.10.15', checkOut: '2025.10.18', guests: '성인 4명', status: 'upcoming', statusText: '예약 완료' },
-  { id: 3, placeName: '제주 돌담집', image: 'https://images.unsplash.com/photo-1518780722-e4210a562f6b?q=80&w=1974&auto=format&fit=crop', checkIn: '2025.08.01', checkOut: '2025.08.05', guests: '성인 2명, 어린이 1명', status: 'cancelled', statusText: '취소됨' },
-  ]);
+  const reservations = ref([]);
   
   const likedItems = ref([
   { id: 101, name: '남산 한옥마을', location: '서울 중구', price: 250000, image: 'https://images.unsplash.com/photo-1616763327685-613d9406004b?q=80&w=2070&auto=format&fit=crop'},
@@ -252,6 +266,7 @@
   // 페이지 로딩 시 사용자 정보 불러오기
   onMounted(() => {
   fetchUserData();
+  fetchReservations();
   });
   
   // 사용자 정보 불러오기 (토큰 기반)
@@ -274,6 +289,33 @@
       // router.push('/login');
     }
   };
+
+  const fetchReservations = async () => {
+    try {
+      const response = await axios.get('http://localhost:8888/mypage/reservations', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+
+      console.log("reservations.value : ", JSON.stringify(reservations.value));
+      // DB에서 가져온 데이터를 그대로 할당
+      reservations.value = response.data.map(item => ({
+        id: item.id,
+        placeName: item.placeName,
+        image: item.image,
+        checkIn: item.checkIn,
+        checkOut: item.checkOut,
+        guests: item.guests,
+        status: item.status,         // 'completed', 'upcoming', 'cancelled' 등
+        statusText: item.statusText  // '이용 완료', '예약 완료', '취소됨' 등
+      }));
+    } catch (error) {
+      console.error('예약 내역 가져오기 실패:', error);
+      alert('예약 내역을 불러오는 데 실패했습니다.');
+    }
+  };
+
   
   const changeTab = (tabName) => {
   activeTab.value = tabName;
