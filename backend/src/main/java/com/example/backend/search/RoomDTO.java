@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class RoomDTO {
 
     @JsonProperty("rId")
-    private Long rId;
+    private Integer rId;
     
     private String type;
     private int count;

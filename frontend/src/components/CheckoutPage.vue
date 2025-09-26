@@ -266,13 +266,25 @@ if (!bookingStore.room || !bookingStore.room.rId) {
   return alert('예약 정보가 올바르지 않습니다. 페이지를 새로고침 후 다시 시도해주세요.');
 }
 
-if (!tossPayments.value) return alert('결제 모듈이 준비되지 않았습니다.');
-
 const room = bookingStore.room;
 const hotel = bookingStore.hotel;
 const search = bookingStore.search;
 const reservationId = bookingStore.reservationId;
 const userId = authStore.userId;
+
+// ✅ 객실 잔여 수 확인
+// availabilities 배열이 비어있으면 총 count를 사용
+let availableCount = room.availabilities.length > 0 
+  ? Math.min(...room.availabilities.map(a => a.availableCount)) // 선택 기간 중 최소 잔여 수
+  : room.count;
+
+if (availableCount <= 0) {
+  return alert('죄송합니다. 선택한 날짜에 잔여 객실이 없습니다.');
+}
+
+if (!tossPayments.value) return alert('결제 모듈이 준비되지 않았습니다.');
+
+
 
 if (!room || !hotel || !search) {
   return alert('예약 정보가 올바르지 않습니다.');
@@ -293,7 +305,7 @@ try {
       reservationId: reservationId,
       roomId: bookingStore.room.rId,
       hotelId: bookingStore.hotel.hId,
-      userId: authStore.userId,
+      userId: authStore.isLoggedIn ? authStore.userId : null,
       phone: phoneNumber.value,
       amount: finalPrice.value,
       orderName: `${bookingStore.hotel.hname} - ${bookingStore.room.type}`
@@ -304,6 +316,7 @@ try {
 
     const orderId = `room-reservation-${Date.now()}`;
 
+    // 1. 결제 요청
     await tossPayments.value.requestPayment('card', {
       amount: finalPrice.value,
       orderId,
@@ -312,6 +325,14 @@ try {
       successUrl: `${window.location.origin}/payment-callback`,
       failUrl: `${window.location.origin}/payment-fail`
     });
+
+    // 2️. 결제 완료 후 예약 개수 차감
+    if (room.availabilities.length > 0) {
+      room.availabilities.forEach(a => a.availableCount -= 1);
+    } else {
+      room.count -= 1;
+    }
+
     } catch (error) {
         console.error('결제 정보 업데이트 또는 결제 요청 실패:', error);
         alert('결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');

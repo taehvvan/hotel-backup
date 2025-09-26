@@ -409,18 +409,40 @@ const goToCheckout = async (room) => {
   }
   
   try {
+    const formatDate = (date) => new Date(date).toISOString().split("T")[0];
+    const checkinDate = formatDate(checkIn.value);
+    const checkoutDate = formatDate(checkOut.value);
 
-    const roomWithHotelId = { ...room, hid: hotel.value.hid };
+    const availabilityResponse = await axios.get(
+      `http://localhost:8888/api/rooms/${room.rId}/availabilities`,
+      {
+        params: { checkin: checkinDate, checkout: checkoutDate },
+      }
+    );
 
-    // [수정] toRaw를 사용하여 반응형 객체의 원본을 전달합니다.
-    bookingStore.setBooking(search, toRaw(hotel.value), roomWithHotelId);
+    const availabilities = availabilityResponse.data;
 
-    const formatDate = (date) => new Date(date).toISOString().split('T')[0];
-    
+    // booking_room 객체 생성
+    const bookingRoom = {
+      ...room,
+      hId: hotel.value.hId,
+      checkin: checkinDate,
+      checkout: checkoutDate,
+      people: persons.value,
+      price: room.price * rooms.value,
+      availabilities: availabilities.map((a) => ({
+        date: a.date,
+        availableCount: a.availableCount,
+      })),
+    };
+
+    // ✅ localStorage 저장
+    localStorage.setItem("booking_room", JSON.stringify(bookingRoom));
+    console.log("📦 booking_room 저장:", bookingRoom);
+
     const reservationData = {
       rId: room.rId,
       uId: authStore.userId,
-      // [수정] 반응형 객체에서 값을 가져올 때는 .value를 사용해야 합니다.
       hId: hotel.value.hId, 
       checkin: formatDate(checkIn.value),
       checkout: formatDate(checkOut.value),

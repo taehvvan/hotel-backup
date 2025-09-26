@@ -45,8 +45,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             path.startsWith("/api/verify-code-for-password-reset") || path.startsWith("/api/reset-password") ||
             path.startsWith("/api/reservations") || path.startsWith("/api/payments/complete") ||
             path.startsWith("/images/") || path.startsWith("/css/") || path.startsWith("/js/") ||
-            path.startsWith("/api/admin") || path.startsWith("/api/manager-register")) {  // ✅ admin API 테스트용 제외
-            filterChain.doFilter(request, response);
+            path.startsWith("/api/admin") || path.startsWith("/api/manager-register") ||
+            path.startsWith("/api/rooms")) {  // ✅ admin API 테스트용 제외
+            
+                filterChain.doFilter(request, response);
             return;
         }
 

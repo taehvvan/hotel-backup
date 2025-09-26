@@ -281,6 +281,15 @@ const toggleCalendar = async () => {
   updateAllPositions();
 };
 
+/* ===== 헬퍼 함수 추가 ===== */
+const formatDateToYYYYMMDD = (date) => {
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1, 두 자리로 맞춤
+  const day = String(date.getDate()).padStart(2, '0');      // 두 자리로 맞춤
+  return `${year}-${month}-${day}`;
+};
+
 const weekDays = ['일','월','화','수','목','금','토'];
 const today = new Date(); today.setHours(0,0,0,0);   // 오늘 00:00 기준 고정
 const hoveredDate = ref(null);
@@ -427,8 +436,8 @@ const search = async () => {
   
   const requestBody = {
     region: destination.value,
-    startDate: checkIn.value.toISOString().split('T')[0],
-    endDate: checkOut.value.toISOString().split('T')[0],
+    startDate: formatDateToYYYYMMDD(checkIn.value),
+    endDate: formatDateToYYYYMMDD(checkOut.value),
     numberOfRooms: rooms.value,
     numberOfPeople: persons.value,
   };

@@ -174,7 +174,7 @@ public class HotelExcelService {
                 String dynamicImageDirectoryPath = imageBaseDirectoryPath + hotel.getType() + "/";
                 String roomImageDirectoryPath = dynamicImageDirectoryPath + "rooms/";
                 File roomImageDir = new File(roomImageDirectoryPath);
-                Long roomId = room.getRId();
+                Integer roomId = room.getRId();
 
                 if (roomId != null && roomImageDir.exists() && roomImageDir.isDirectory()) {
                     String roomIdPrefix = roomId.toString();

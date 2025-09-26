@@ -40,7 +40,7 @@ const handleBookingCheck = async () => {
     const response = await axios.get('http://localhost:8888/api/reservations/guest', {
       params: {
         phone: phoneNumber.value,
-        pId: bookingNumber.value,
+        reId: bookingNumber.value,
       },
     });
 

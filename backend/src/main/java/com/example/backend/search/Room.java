@@ -17,7 +17,7 @@ public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "r_id")
-    private Long rId;
+    private Integer rId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "h_id", nullable = false)

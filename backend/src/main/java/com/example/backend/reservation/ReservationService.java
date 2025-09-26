@@ -64,8 +64,8 @@ public class ReservationService {
         return reservationRepository.findMyReservationsByUserId(userId);
     }
 
-    public ReservationResponseDTO findGuestReservation(Integer pId, String phone) {
-        Payment payment = paymentRepository.findBypIdAndPhone(pId, phone).orElse(null);
+    public ReservationResponseDTO findGuestReservation(Integer reId, String phone) {
+        Payment payment = paymentRepository.findByReservation_ReIdAndPhone(reId, phone).orElse(null);
         if (payment == null || payment.getReservation() == null) {
             return null;
         }

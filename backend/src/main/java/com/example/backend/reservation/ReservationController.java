@@ -1,9 +1,14 @@
 package com.example.backend.reservation;
 
+import com.example.backend.search.RoomAvailabilityService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 import com.example.backend.login.security.PrincipalDetails;
+
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 
@@ -13,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final RoomAvailabilityService roomAvailabilityService;
 
     @PostMapping
     // ✅ ResponseEntity의 반환 타입을 ReservationPrepareResponse 로 변경
@@ -45,8 +51,8 @@ public class ReservationController {
 
     @GetMapping("/guest")
     public ResponseEntity<ReservationResponseDTO> getGuestReservation(
-            @RequestParam Integer pId, @RequestParam String phone) {
-        ReservationResponseDTO reservation = reservationService.findGuestReservation(pId, phone);
+            @RequestParam Integer reId, @RequestParam String phone) {
+        ReservationResponseDTO reservation = reservationService.findGuestReservation(reId, phone);
         if (reservation == null) {
             return ResponseEntity.notFound().build();
         }

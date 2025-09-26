@@ -24,12 +24,6 @@
           <span>예약 내역</span>
         </button>
         <button 
-          :class="{ active: activeTab === 'liked' }" 
-          @click="changeTab('liked')"
-        >
-          <span>찜한 숙소</span>
-        </button>
-        <button 
           :class="{ active: activeTab === 'reviews' }" 
           @click="changeTab('reviews')"
         >
@@ -56,17 +50,24 @@
               class="reservation-card"
             >
               <div class="card-image">
-                <img :src="reservation.image" :alt="reservation.placeName" class="selected-hotel-image">
+                <img
+                  :src="`http://localhost:8888/images/${reservation.hotelType || 'default'}/${reservation.hotelId || '0'}.jpg`"
+                  :alt="reservation.roomType || reservation.hotelName"
+                />
               </div>
               <div class="card-info">
                 <h5 class="place-name">{{ reservation.placeName }}</h5>
                 <p class="reservation-details">
-                  <span><strong>체크인:</strong> {{ reservation.checkIn }}</span>
-                  <span><strong>체크아웃:</strong> {{ reservation.checkOut }}</span>
-                  <span><strong>인원:</strong> {{ reservation.guests }}</span>
+                  <span><strong>객실:</strong> {{ reservation.roomType }}</span>
+                  <span><strong>주소:</strong> {{ reservation.address }}</span>
                 </p>
                 <div class="reservation-actions">
                   <p class="status-badge" :class="reservation.status">{{ reservation.statusText }}</p>
+                  <p class="dates">{{ reservation.checkIn }} ~ {{ reservation.checkOut }}</p>
+                  <p class="price-people">
+                    <span>가격: {{ reservation.price.toLocaleString() }}원</span>
+                    <span>인원: {{ reservation.guests }}명</span>
+                  </p>
                   <button 
                     v-if="reservation.status === 'completed'" 
                     @click="writeReview(reservation.id)"
@@ -80,27 +81,6 @@
           </div>
           <div v-else class="empty-state">
             <p>아직 예약 내역이 없습니다. 새로운 쉼을 찾아 떠나보세요! ✨</p>
-          </div>
-        </div>
-  
-        <div v-else-if="activeTab === 'liked'" class="tab-pane">
-          <div class="section-header">
-            <h4>찜한 숙소</h4>
-            <span class="header-line"></span>
-          </div>
-          <div v-if="likedItems.length > 0" class="liked-list">
-            <div v-for="item in likedItems" :key="item.id" class="liked-card">
-              <img :src="item.image" :alt="item.name" class="liked-image">
-              <div class="liked-info">
-                <h5>{{ item.name }}</h5>
-                <p class="liked-location">{{ item.location }}</p>
-                <span class="liked-price"><strong>{{ item.price.toLocaleString() }}</strong>원 / 박</span>
-              </div>
-              <button class="remove-btn">삭제</button>
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            <p>마음에 드는 숙소를 찜하고 다음에 또 방문해보세요! ❤️</p>
           </div>
         </div>
   
@@ -298,21 +278,43 @@ const hotelImage = computed(() => hotelImageUrl.value);
         }
       });
 
-      console.log("reservations.value : ", JSON.stringify(reservations.value));
+      console.log('API 응답 데이터:', response.data); 
+
       // DB에서 가져온 데이터를 그대로 할당
       reservations.value = response.data.map(item => ({
-        id: item.id,
-        placeName: item.placeName,
-        image: item.image,
+        reservationId: item.reservationId,
+        placeName: item.hotelName,
+        image: item.hotelImage || `http://localhost:8888/images/${item.hotelType || 'default'}/${item.hotelId || '0'}.jpg`,
+        guests: item.people || item.guestCount,
         checkIn: item.checkIn,
         checkOut: item.checkOut,
-        guests: item.guests,
-        status: item.status,         // 'completed', 'upcoming', 'cancelled' 등
-        statusText: item.statusText  // '이용 완료', '예약 완료', '취소됨' 등
-      }));
+        price: item.price,
+        status: item.status,
+        roomType: item.roomType,
+        address: item.address,
+        hotelType: item.hotelType || bookingStore.hotel?.type || 'default',
+        hotelId: item.hotelId || bookingStore.hotel?.hId || '0'
+      }))
     } catch (error) {
       console.error('예약 내역 가져오기 실패:', error);
       alert('예약 내역을 불러오는 데 실패했습니다.');
+
+      if (route.query.reservationId) {
+        reservations.value.push({
+          reservationId: route.query.reservationId,
+          placeName: route.query.hotelName,
+          image: `http://localhost:8888/images/${route.query.hotelType || 'default'}/${route.query.hotelId || '0'}.jpg`,
+          guests: route.query.people,
+          checkIn: route.query.checkIn,
+          checkOut: route.query.checkOut,
+          price: route.query.price,
+          status: route.query.status,
+          roomType: route.query.roomType,
+          address: route.query.address,
+          hotelType: route.query.hotelType || bookingStore.hotel?.type || 'default',
+          hotelId: route.query.hotelId || bookingStore.hotel?.hId || '0'
+        })
+      }
     }
   };
 
@@ -431,7 +433,7 @@ const hotelImage = computed(() => hotelImageUrl.value);
   }
   
   .content-wrapper {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -568,82 +570,121 @@ const hotelImage = computed(() => hotelImageUrl.value);
   
   /* 예약 내역 */
   .reservation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
   }
   .reservation-card {
-  display: flex;
-  gap: 20px;
-  border: 1px solid #E0E0E0;
-  border-radius: 12px;
-  padding: 15px;
-  transition: box-shadow 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border: 1px solid #E0E0E0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: box-shadow 0.2s;
+    background-color: #fff;
   }
   .reservation-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
+
+  /* 호텔 이미지 - 좌측 */
   .reservation-card .card-image {
-  width: 150px;
-  height: 100px;
-  border-radius: 8px;
-  overflow: hidden;
+    width: 200px;
+    height: 140px;
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
   }
+
   .reservation-card .card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
+
+  /* 중앙 정보 영역 */
   .reservation-card .card-info {
-  flex-grow: 1;
-  text-align: left;
+    flex: 1;
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-  .reservation-card .place-name {
-  font-weight: 700;
-  font-size: 1.2rem;
-  margin-top: 0;
-  margin-bottom: 10px;
+  .reservation-card .card-info .place-name {
+    font-weight: 800;  /* 기존 700 → 800으로 굵게 */
+    font-size: 1.5rem; /* 기존 1.3rem → 1.5rem으로 키움 */
   }
-  .reservation-card .reservation-details span {
-  display: block;
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 5px;
+
+  .reservation-card .card-info .reservation-details {
+    font-size: 1rem; /* 기존 0.95rem → 1rem */
+    color: #444;     /* 조금 더 진하게 */
   }
-  .reservation-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+
+  .reservation-card .card-info .reservation-details span {
+    display: block;      /* 세로로 줄바꿈 */
+    font-weight: 500;    /* 글자 굵기 강조 */
+    margin-bottom: 5px;  /* 항목 간 간격 */
   }
-  .status-badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+
+  /* 예약 상태 및 날짜, 가격, 인원 - 우측 */
+  .reservation-card .reservation-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 180px;
   }
-  .status-badge.upcoming {
-  background-color: #E0F7FA;
-  color: #00796B;
+
+  .reservation-card .reservation-actions .status-badge {
+    font-size: 0.95rem; /* 기존 0.85rem → 0.95rem */
+    font-weight: 700;   /* 기존 600 → 700 */
   }
+
   .status-badge.completed {
-  background-color: #E8F5E9;
-  color: #388E3C;
+    background-color: #E8F5E9;
+    color: #388E3C;
   }
+
+  .status-badge.upcoming {
+    background-color: #E0F7FA;
+    color: #00796B;
+  }
+
   .status-badge.cancelled {
-  background-color: #FFEBEE;
-  color: #D32F2F;
+    background-color: #FFEBEE;
+    color: #D32F2F;
   }
+
+  .reservation-card .reservation-actions .dates {
+    font-size: 1rem;    /* 기존 0.9rem → 1rem */
+    font-weight: 500;   /* 강조 */
+  }
+
+  .reservation-card .reservation-actions .price-people {
+    font-size: 1rem;    /* 기존 0.95rem → 1rem */
+    font-weight: 600;   /* 강조 */
+  }
+
+  .reservation-card .reservation-actions .price-people span {
+    display: block;
+    margin-top: 4px;
+  }
+
   .btn-review-write {
-  background-color: #4A69A1;
-  color: #fff;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
+    background-color: #4A69A1;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+
+  .btn-review-write:hover {
+    background-color: #3A5280;
   }
   
   /* 찜한 숙소 */

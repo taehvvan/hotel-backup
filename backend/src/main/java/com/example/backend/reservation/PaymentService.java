@@ -75,8 +75,8 @@ public class PaymentService {
         System.out.println("Toss Payments 승인 API 호출 시뮬레이션 - 성공");
     }
 
-    public ReservationResponseDTO findReservationForGuest(Integer pId, String phone) {
-        return paymentRepository.findBypIdAndPhone(pId, phone)
+    public ReservationResponseDTO findReservationForGuest(Integer reId, String phone) {
+        return paymentRepository.findByReservation_ReIdAndPhone(reId, phone)
                 .map(payment -> new ReservationResponseDTO(payment.getReservation()))
                 .orElse(null);
     }
