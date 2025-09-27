@@ -127,6 +127,7 @@
             </div>
           </div>
         </section>
+        
 
         <section id="amenities" class="detail-section">
           <h2>서비스 및 부대시설</h2>
