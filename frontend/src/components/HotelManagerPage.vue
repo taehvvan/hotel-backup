@@ -144,10 +144,6 @@
               <h3>한옥</h3>
               <p>{{ getPropertyCount('한옥') }}개 등록됨</p>
             </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
             <div class="property-type-card" @click="selectPropertyType('관광호텔')">
               <span class="icon">🏢</span>
               <h3>관광호텔</h3>
@@ -173,10 +169,6 @@
               </div>
               <div class="property-manage-footer">관리하기</div>
             </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
             <div class="card property-card add-new-card" @click="addNewProperty">
               <span class="add-icon">+</span>
               <h4>새 {{ selectedPropertyType }} 추가하기</h4>
@@ -186,13 +178,8 @@
         
         <div v-if="accommodationView === 'edit' && editableHotel" class="edit-form-wrapper">
           <header class="content-header with-back-button">
-<<<<<<< HEAD
-            <button @click="accommodationView = 'list'" class="btn-back">‹ 목록으로</button>
-=======
 
             <button @click="accommodationView = 'list'" class="btn-back">‹ 목록으로</button>
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
             <div>
               <h1>{{ editFormTitle }}</h1>
             </div>
@@ -228,18 +215,10 @@
                   <div class="form-group"><label>경도</label><input type="text" v-model="editableHotel.longitude" placeholder="예: 126.9780"></div>
                   <div class="form-group"><label>체크인 시간</label><input type="time" v-model="editableHotel.checkInTime"></div>
                   <div class="form-group"><label>체크아웃 시간</label><input type="time" v-model="editableHotel.checkOutTime"></div>
-<<<<<<< HEAD
-=======
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
                 </div>
               </div>
               
               <div class="card">
-<<<<<<< HEAD
-=======
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
                 <h4>객실 관리</h4>
                 <div v-for="(room, index) in editableHotel.rooms" :key="index" class="room-edit-card">
                   <div class="room-photo">
@@ -266,10 +245,6 @@
                     </div>
                   </div>
                   <button @click="removeRoom(index)" class="btn-remove-room">-</button>
-<<<<<<< HEAD
-=======
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
                 </div>
                 <button @click="addRoom" class="btn-add-room">+ 새 객실 추가</button>
               </div>
@@ -282,10 +257,6 @@
                   </label>
                 </div>
               </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> c44adac929d8261adb1f062bd02f76eb353bc792
             </div>
             
             <div class="form-sidebar">

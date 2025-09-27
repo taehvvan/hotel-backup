@@ -29,6 +29,11 @@ public class PaymentService {
         Reservation reservation = reservationRepository.findById(request.getReId())
                 .orElseThrow(() -> new RuntimeException("결제할 예약 정보를 찾을 수 없습니다. ID: " + request.getReId()));
 
+        // ✅ [상태 검증 추가] '예약 중' 상태일 때만 결제를 진행하도록 방어 로직을 추가합니다.
+        if (!"예약 중".equals(reservation.getStatus())) {
+            throw new IllegalStateException("이미 처리되었거나 유효하지 않은 예약 상태입니다. 현재 상태: " + reservation.getStatus());
+        }
+
         UserEntity user = null;
         // 2-1. 인증된 사용자 정보가 있으면 최우선으로 사용 (가장 안전)
         if (principalDetails != null) {
@@ -45,15 +50,18 @@ public class PaymentService {
         // 여기서는 성공했다고 가정하고 시뮬레이션합니다.
         // verifyPaymentWithToss(request.getPaymentKey(), request.getOrderId(), request.getAmount());
 
-        // 3. 객실 수 차감
-        LocalDate checkin = reservation.getCheckin();
-        LocalDate checkout = reservation.getCheckout();
-        int quantity = reservation.getPeople(); // 예시: 예약 인원 기준 차감
-        roomAvailabilityService.reserveRoom(reservation.getRoom().getRId(), checkin, checkout, quantity);
-
         // 4. 예약 상태 업데이트
         reservation.setStatus("예약 완료");
         reservationRepository.save(reservation);
+
+        // [핵심 로직 추가] 객실 재고를 차감합니다.
+        // 결제가 최종 완료된 이 시점에서만 재고를 차감해야 중복 차감을 방지할 수 있습니다.
+        roomAvailabilityService.reserveRoom(
+            reservation.getRoom().getRId(),
+            reservation.getCheckin(),
+            reservation.getCheckout(),
+            1 // 현재 로직 상 객실 1개를 예약
+        );
 
         // 5. 결제 정보 생성
         Payment payment = Payment.builder()

@@ -164,9 +164,9 @@
                 <div class="price-wrapper">
                   <button 
                     class="like-button" 
-                    @click.prevent="toggleFavorite(item.hid)"
+                    @click.stop="toggleFavorite(item.hId)"
                   >
-                    {{ isFavorite(item.hid) ? '❤️' : '♡' }}
+                    {{ isFavorite(item.hId) ? '❤️' : '♡' }}
                   </button>
                   <div class="final-price-box">
                     <span class="price-label">1박 최저가</span><br>
@@ -428,43 +428,53 @@ const getRatingText = (score) => {
   return '보통이에요';
 };
 
-const addToWishlist = async (hid) => {
+const addToWishlist = async (hId) => {
+  if (!hId && hId !== 0) { // hid가 0일 수도 있으므로 명확하게 체크
+    console.error('유효하지 않은 hotel ID:', hId);
+    alert('찜하기 위한 상품 정보가 올바르지 않습니다.');
+    return;
+  }
+
   try {
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("JWT 토큰이 없습니다.");
 
     const response = await axios.post(
-      `http://localhost:8888/api/wishlist/${hid}`,
-      {},
+      `http://localhost:8888/api/wishlist/${hId}`,
+      null,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
+    console.log('찜 추가 성공!', response.data);
+
     // 서버에서 반환되는 데이터가 hid 없으면 직접 추가
-    wishlistItems.value.push({ hid, ...response.data });
+    wishlistItems.value.push({ hId, ...response.data });
+    alert("찜 목록에 추가되었습니다.");
   } catch (error) {
     console.error("찜 추가 실패", error);
     alert("찜 추가에 실패했습니다.");
   }
 };
 
-const removeFromWishlist = async (hid) => {
-  if (!hid) return;
+const removeFromWishlist = async (hId) => {
+  if (!hId) return;
   try {
     const token = localStorage.getItem("accessToken");
     if (!token) throw new Error("JWT 토큰이 없습니다.");
 
-    await axios.delete(`http://localhost:8888/api/wishlist/${hid}`, {
+    await axios.delete(`http://localhost:8888/api/wishlist/${hId}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    wishlistItems.value = wishlistItems.value.filter(item => item.hid !== hid);
+    wishlistItems.value = wishlistItems.value.filter(item => item.hId !== hId);
+    alert("찜 목록에서 해제되었습니다.");
   } catch (error) {
     console.error("찜 해제 실패", error);
     alert("찜 해제에 실패했습니다.");
   }
 };
 
-const isFavorite = (hid) => wishlistItems.value.some(item => item.hid === hid);
+const isFavorite = (hId) => wishlistItems.value.some(item => item.hId === hId);
 
 const toggleFavorite = async (hid) => {
   if (!isLoggedIn.value) {
@@ -492,7 +502,7 @@ onMounted(async () => {
     // 서버에서 반환되는 리스트를 그대로 반영
     // 각 항목에 hid가 있어야 isFavorite에서 인식 가능
     wishlistItems.value = response.data.map(item => ({
-      hid: item.hid,
+      hId: item.hId || item.hid,
       ...item
     }));
   } catch (error) {

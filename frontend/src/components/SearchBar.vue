@@ -190,6 +190,17 @@ const persons = ref(2);
 const router = useRouter();
 const route = useRoute();
 
+
+// ✅ 타임존 문제없는 날짜 포맷 함수 추가
+const formatDateToYYYYMMDD = (date) => {
+  if (!date) return null;
+  // getFullYear, getMonth, getDate는 로컬 시간대를 기준으로 값을 반환합니다.
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 /* 요일 배열 */
 const DOW = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 
@@ -400,8 +411,8 @@ const search = async () => {
     path: '/search',
     query: {
       region: destination.value,
-      startDate: checkIn.value.toISOString().split('T')[0],
-      endDate: checkOut.value.toISOString().split('T')[0],
+      startDate: formatDateToYYYYMMDD(checkIn.value),
+      endDate: formatDateToYYYYMMDD(checkOut.value),
       rooms: rooms.value,
       persons: persons.value,
     }

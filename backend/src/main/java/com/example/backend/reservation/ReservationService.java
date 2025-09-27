@@ -12,6 +12,7 @@ import com.example.backend.search.Hotel;
 import com.example.backend.search.HotelRepository;
 import com.example.backend.search.Room;
 import com.example.backend.search.RoomRepository;
+import com.example.backend.search.RoomAvailabilityService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +25,7 @@ public class ReservationService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final HotelRepository hotelRepository;
+    private final RoomAvailabilityService roomAvailabilityService;
 
     @Transactional
     public ReservationPrepareResponse createReservation(ReservationRequest request) {
@@ -50,7 +52,7 @@ public class ReservationService {
                 .checkout(request.getCheckout())
                 .people(request.getPeople())
                 .price(request.getPrice())
-                .status("결제 대기") // "예약 중" -> "결제 대기"로 상태 명확화
+                .status("예약 중")
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -82,10 +84,21 @@ public class ReservationService {
         Reservation reservation = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new IllegalArgumentException("해당 예약이 존재하지 않습니다."));
         
+        // 1. 예약 상태를 '예약 취소'로 변경
         reservation.setStatus("예약 취소");
-
         reservationRepository.save(reservation);
+
+        // ✅ 2. [핵심 로직 추가] 예약했던 날짜들의 객실 재고를 다시 1씩 늘려줍니다.
+        // 일반적으로 한 번에 하나의 객실을 예약/취소하므로 quantity는 1입니다.
+        roomAvailabilityService.cancelRoomReservation(
+            reservation.getRoom().getRId(),
+            reservation.getCheckin(),
+            reservation.getCheckout(),
+            1 // 1개의 객실을 복원
+        );
     }
+
+    
 
     @Transactional
     public void markAsDeleted(Integer reservationId) {

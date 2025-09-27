@@ -32,7 +32,7 @@
       <div v-if="wishlistItems.length > 0" class="accommodations-grid">
         <div
           v-for="place in wishlistItems"
-          :key="place.hid"
+          :key="place.hId"
           class="reco-card"
           :class="{ disabled: place.minPrice <= 0 }"
           @click="goToHotelDetail(place)"
@@ -42,7 +42,7 @@
 
           <div class="reco-card-content">
             <span class="reco-card-location">{{ place.region }}</span>
-            <h4>{{ place.hname }}</h4>
+            <h4>{{ place.hName }}</h4>
             <div class="review-info">
               <template v-if="place.reviewCount > 0">
                 <span class="review-score">
@@ -65,7 +65,7 @@
 
           <button
             class="like-button liked"
-            @click.stop="removeFromWishlist(place.hid)"
+            @click.stop="removeFromWishlist(place.hId)"
             aria-label="찜하기 취소"
           >
             <span class="heart-icon filled">❤️</span>
@@ -127,7 +127,7 @@
   }
 
   router.push({
-    path: `http://localhost:8888/hotel/${place.hid}`,
+    path: `http://localhost:8888/hotel/${place.hId}`,
       query: {
         region: place.region,
         startDate: checkIn.value,
@@ -145,7 +145,8 @@
       await axios.delete(`http://localhost:8888/api/wishlist/${hid}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      wishlistItems.value = wishlistItems.value.filter(item => item.hid !== hid);
+      wishlistItems.value = wishlistItems.value.filter(item => item.hId !== hid);
+      alert('찜 목록에서 해제되었습니다.');
     } catch (error) {
       console.error('찜 해제 실패', error);
     }

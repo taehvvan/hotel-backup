@@ -108,7 +108,7 @@
                 <h4>{{ room.type }}</h4>
                 <p class="room-spec">
                   <span>🛏️ 최대 {{ room.people }}명</span>
-                  <span>✅ 재고: {{ room.count }}개</span>
+                  <span>✅ 재고: {{ minAvailableCounts[room.rId] }}개</span>
                   <span>⏰ 체크인: {{ room.checkinTime }}</span>
                   <span>⏰ 체크아웃: {{ room.checkoutTime }}</span>
                 </p>
@@ -117,7 +117,12 @@
               <div class="room-booking">
                 <strong class="room-price">{{ room.price.toLocaleString() }}원</strong>
                 <span>세금 및 봉사료 포함</span>
-                <button class="btn-book" @click="goToCheckout(room)">예약하기</button>
+                <button 
+                  class="btn-book" 
+                  @click="goToCheckout(room, minAvailableCounts[room.rId])"
+                  :disabled="minAvailableCounts[room.rId] <= 0">
+                  {{ minAvailableCounts[room.rId] > 0 ? '예약하기' : '예약 마감' }}
+                </button>
               </div>
             </div>
           </div>
@@ -271,6 +276,24 @@ const scrollToSection = (id) => {
   }
 };
 
+// ✅ 각 방의 최소 재고를 계산하는 computed 속성
+const minAvailableCounts = computed(() => {
+  const counts = {};
+  if (hotel.value && hotel.value.rooms) {
+    hotel.value.rooms.forEach(room => {
+      // room.availabilities가 없거나 비어있으면 재고는 0
+      if (!room.availabilities || room.availabilities.length === 0) {
+        counts[room.rId] = 0;
+      } else {
+        // availabilities 배열에서 availableCount 값들만 추출하여 그 중 최솟값을 찾음
+        // 이것이 해당 기간 동안 예약 가능한 실제 재고
+        counts[room.rId] = Math.min(...room.availabilities.map(a => a.availableCount));
+      }
+    });
+  }
+  return counts;
+});
+
 // [수정] 호텔 상세 정보를 서버에 요청하는 함수
 const fetchHotelDetails = async () => {
   // [수정] 라우터 파라미터에서 직접 'id'를 가져옵니다. 'hId'가 아닙니다.
@@ -401,10 +424,16 @@ watch(hotel, async (newVal) => {
 }, { deep: true });
 
 
-const goToCheckout = async (room) => {
+const goToCheckout = async (room, availableCount) => {
   // [추가] hotel 데이터가 없으면 예약을 진행할 수 없습니다.
   if (!hotel.value) {
     alert("호텔 정보가 로드되지 않았습니다.");
+    return;
+  }
+
+  // 재고가 0 이하이면 함수를 즉시 종료
+  if (availableCount <= 0) {
+    alert('해당 객실은 현재 예약이 불가능합니다.');
     return;
   }
   
@@ -430,10 +459,6 @@ const goToCheckout = async (room) => {
       checkout: checkoutDate,
       people: persons.value,
       price: room.price * rooms.value,
-      availabilities: availabilities.map((a) => ({
-        date: a.date,
-        availableCount: a.availableCount,
-      })),
     };
 
     // ✅ localStorage 저장

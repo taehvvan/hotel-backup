@@ -2,8 +2,10 @@ package com.example.backend.detail;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
@@ -17,14 +19,18 @@ import com.example.backend.search.RoomDTO;
 import com.example.backend.search.ServiceDTO;
 import com.example.backend.search.Review;
 import com.example.backend.search.ReviewDTO;
+import com.example.backend.search.RoomAvailabilityDTO;
+import com.example.backend.search.RoomAvailabilityRepository;
 
 @Service
 public class HotelDetailService {
 
     private final HotelRepository hotelRepository;
+    private final RoomAvailabilityRepository roomAvailabilityRepository;
 
-    public HotelDetailService(HotelRepository hotelRepository) {
+    public HotelDetailService(HotelRepository hotelRepository, RoomAvailabilityRepository roomAvailabilityRepository) {
         this.hotelRepository = hotelRepository;
+        this.roomAvailabilityRepository = roomAvailabilityRepository;
     }
 
     public HotelDTO detail(DetailRequest request) {
@@ -51,7 +57,7 @@ public class HotelDetailService {
                 .collect(Collectors.toList());
 
         // 3. Convert to DTO
-        return convertToDTO(hotel, availableRooms);
+        return convertToDTO(hotel, availableRooms, request);
     }
 
     private boolean isRoomAvailable(Room room, LocalDate start, LocalDate end, int numberOfRooms, int numberOfPeople) {
@@ -72,7 +78,7 @@ public class HotelDetailService {
         return !hasInsufficientAvailability;
     }
 
-    private HotelDTO convertToDTO(Hotel hotel, List<Room> availableRooms) {
+    private HotelDTO convertToDTO(Hotel hotel, List<Room> availableRooms, DetailRequest request) {
         HotelDTO dto = new HotelDTO();
         dto.setHId(hotel.getHId());
         dto.setHName(hotel.getHName());
@@ -121,6 +127,40 @@ public class HotelDetailService {
             roomDTO.setInfo(room.getInfo());
             roomDTO.setCheckinTime(room.getCheckinTime());
             roomDTO.setCheckoutTime(room.getCheckoutTime());
+
+            // 선택된 기간의 날짜별 재고 리스트를 가져와 DTO에 설정
+            LocalDate startDate = request.getStartDate();
+            LocalDate endDate = request.getEndDate();
+
+           // 1. DB에서 해당 기간에 존재하는 재고 기록만 일단 가져옵니다.
+            //    그리고 날짜(LocalDate)를 키로 하여 빠르게 찾을 수 있도록 Map으로 변환합니다.
+            Map<LocalDate, RoomAvailability> existingAvailabilitiesMap = roomAvailabilityRepository
+                    .findByRoom_rIdAndDateBetween(room.getRId(), startDate, endDate.minusDays(1))
+                    .stream()
+                    .collect(Collectors.toMap(RoomAvailability::getDate, Function.identity()));
+
+            // 2. 요청된 기간의 모든 날짜를 순회하면서 재고 DTO 리스트를 생성합니다.
+            List<RoomAvailabilityDTO> finalAvailabilityDTOs = startDate.datesUntil(endDate)
+                    .map(date -> {
+                        RoomAvailabilityDTO availabilityDTO = new RoomAvailabilityDTO();
+                        availabilityDTO.setDate(date);
+
+                        // 3. 해당 날짜의 재고 기록이 DB에 존재하는지 확인합니다.
+                        if (existingAvailabilitiesMap.containsKey(date)) {
+                            // 존재하면 -> DB에 기록된 availableCount를 사용합니다.
+                            availabilityDTO.setAvailableCount(existingAvailabilitiesMap.get(date).getAvailableCount());
+                        } else {
+                            // 존재하지 않으면 (한 번도 예약된 적 없으면) -> 객실의 총 개수(room.count)를 재고로 설정합니다.
+                            availabilityDTO.setAvailableCount(room.getCount());
+                        }
+                        return availabilityDTO;
+                    })
+                    .collect(Collectors.toList());
+
+
+            // 4. 최종적으로 만들어진 재고 DTO 리스트를 RoomDTO에 설정합니다.
+            roomDTO.setAvailabilities(finalAvailabilityDTOs);
+
             return roomDTO;
         }).collect(Collectors.toList()));
 
