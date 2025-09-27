@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -58,13 +59,22 @@ public class UserEntity {
     @Column(name = "business_number", length = 255)
     private String businessNumber;
 
-    public static UserEntity fromDto(UserDTO userDto) {
-        return UserEntity.builder()
+    public static UserEntity fromDto(UserDTO userDto, boolean isManager) {
+        UserEntity user = UserEntity.builder()
                 .name(userDto.getName())
                 .email(userDto.getEmail())
                 .password(userDto.getPassword())
                 .phone(userDto.getPhone())
                 .birth(userDto.getBirth())
                 .build();
+
+        if (isManager) {
+            if (userDto.getBusinessNumber() == null || userDto.getBusinessNumber().isEmpty()) {
+                throw new IllegalArgumentException("사업자 번호는 필수입니다.");
+            }
+            user.setBusinessNumber(userDto.getBusinessNumber());
+        }
+
+    return user;
     }
 }

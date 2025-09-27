@@ -85,6 +85,16 @@ const handleEmailLogin = async () => {
     // fetchUserInfo 호출
     await authStore.fetchUserInfo(accessToken); 
 
+    if (authStore.userRole === 'ROLE_USER') {
+      router.push('/');
+    } else if (authStore.userRole === 'ROLE_MANAGER') {
+      router.push('/manager');
+    } else if (authStore.userRole === 'ROLE_ADMIN') {
+      router.push('/admin');
+    } else {
+      router.push('/');
+    }
+
 
   } catch (error) {
     console.error(error);

@@ -332,13 +332,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue'; // onMounted 추가
+import axios from 'axios'; // axios 추가
 import { Bar } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-const activeView = ref('dashboard');
+const activeView = ref('reservations'); // 기본 뷰를 'reservations'로 설정하여 바로 확인
 const accommodationView = ref('typeSelection');
 const selectedPropertyType = ref(null);
 const selectedPropertyForEdit = ref(null);
@@ -351,231 +352,173 @@ const isBookingModalVisible = ref(false);
 // --- 예약 관리 관련 상태 ---
 const searchQuery = ref('');
 const searchType = ref('guestName');
-const statusFilter = ref('all'); // [추가] 예약 상태 필터링을 위한 ref, 기본값 'all'
+const statusFilter = ref('all');
 
+// [변경] 필터 옵션을 '예약 완료', '예약 취소' 두 가지만 사용하도록 수정
 const statusOptions = ref([
-  { code: 'confirmed', text: '예약 확정' },
-  { code: 'pending', text: '입금 대기' },
-  { code: 'cancelled', text: '예약 취소' }
+  { code: 'confirmed', text: '예약 완료' },
+  { code: 'cancelled', text: '예약 취소' }
 ]);
 // ------------------------------------
 
-const salesData = {
-  all: { total: 125800000, monthly: 32500000, daily: 1200000, todayBookings: 7 },
-  '호텔': { monthly: 15000000, daily: 600000 },
-  '펜션': { monthly: 8000000, daily: 350000 },
-  '한옥': { monthly: 5500000, daily: 150000 },
-  '관광호텔': { monthly: 4000000, daily: 100000 },
-};
-const salesFilterType = ref('all');
-const salesFilterTypes = [
-  { key: 'all', text: '전체' },
-  { key: '호텔', text: '🏨 호텔' },
-  { key: '펜션', text: '🏡 펜션' },
-  { key: '한옥', text: '🏯 한옥' },
-  { key: '관광호텔', text: '🏢 관광호텔' },
-];
+// [변경] reservations ref를 빈 배열로 초기화
+const reservations = ref([]);
 
-const filteredSales = computed(() => {
-  const type = salesFilterType.value;
-  if (type === 'all' || !salesData[type]) {
-    return salesData.all;
+// [신규] 백엔드에서 예약 데이터를 가져오는 함수
+const fetchReservations = async () => {
+  try {
+    // 백엔드의 매니저용 예약 조회 API 엔드포인트로 요청
+    const response = await axios.get('http://localhost:8888/api/manager/reservations', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+    });
+
+    // 백엔드에서 받은 데이터를 프론트엔드 형식에 맞게 변환
+    reservations.value = response.data.map(r => {
+      let statusCode = 'pending'; // 기본값
+      if (r.status === '예약 완료') statusCode = 'confirmed';
+      if (r.status === '예약 취소') statusCode = 'cancelled';
+      
+      return {
+        id: r.reservationId,
+        guestName: r.userName, // DTO 필드명에 맞게 수정 (예: userName)
+        hotelName: r.hotelName,
+        roomName: r.roomType,
+        checkIn: r.checkIn,
+        checkOut: r.checkOut,
+        status: { code: statusCode, text: r.status }
+      };
+    });
+  } catch (error) {
+    console.error('예약 내역을 불러오는 데 실패했습니다:', error);
+    // 에러 발생 시 사용자에게 알림
+    alert('예약 정보를 가져올 수 없습니다. 로그인 상태를 확인해주세요.');
   }
-  return {
-    total: salesData.all.total,
-    monthly: salesData[type].monthly,
-    daily: salesData[type].daily,
-    todayBookings: salesData.all.todayBookings
-  };
+};
+
+// [신규] 컴포넌트가 마운트될 때 예약 데이터를 가져옵니다.
+onMounted(() => {
+  fetchReservations();
 });
 
-const todayBookingsDetails = ref([
-  { id: 1, hotelName: '쉼, 서울 호텔', roomName: '스탠다드 더블', guestName: '김예약' },
-  { id: 2, hotelName: '오션뷰, 부산 펜션', roomName: '오션뷰 스파', guestName: '이바다' },
-  { id: 3, hotelName: '고요, 경주 한옥', roomName: '사랑채', guestName: '박고객' },
-  { id: 4, hotelName: '쉼, 서울 호텔', roomName: '디럭스 트윈', guestName: '최신규' },
-  { id: 5, hotelName: '시티투어, 서울 관광호텔', roomName: '비즈니스 트윈', guestName: '강비즈' },
-  { id: 6, hotelName: '고요, 경주 한옥', roomName: '사랑채', guestName: '한예약' },
-  { id: 7, hotelName: '오션뷰, 부산 펜션', roomName: '오션뷰 스파', guestName: '정숙박' },
-]);
-
-const reservations = ref([
-  { id: 'R20250915-001', guestName: '이예약', hotelName: '쉼, 서울 호텔', roomName: '스탠다드 더블', checkIn: '2025-09-20', checkOut: '2025-09-22', status: { code: 'confirmed', text: '예약 확정' } },
-  { id: 'R20250915-002', guestName: '최숙박', hotelName: '고요, 경주 한옥', roomName: '사랑채', checkIn: '2025-09-25', checkOut: '2025-09-26', status: { code: 'confirmed', text: '예약 확정' } },
-  { id: 'R20250914-005', guestName: '강여행', hotelName: '오션뷰, 부산 펜션', roomName: '오션뷰 스파', checkIn: '2025-10-01', checkOut: '2025-10-03', status: { code: 'pending', text: '입금 대기' } },
-  { id: 'R20250913-001', guestName: '박취소', hotelName: '쉼, 서울 호텔', roomName: '디럭스 트윈', checkIn: '2025-09-18', checkOut: '2025-09-19', status: { code: 'cancelled', text: '예약 취소' } },
-]);
-
-// --- 예약 관리 관련 computed 속성 및 함수 ---
 
 const searchPlaceholder = computed(() => {
-  return searchType.value === 'guestName' ? '고객 이름으로 검색...' : '예약 번호로 검색...';
+  return searchType.value === 'guestName' ? '고객 이름으로 검색...' : '예약 번호로 검색...';
 });
 
-// [변경] computed 속성에 상태 필터 로직 추가
+// 기존 필터링 로직은 그대로 사용됩니다.
 const filteredReservations = computed(() => {
-  let tempReservations = reservations.value;
+  let tempReservations = reservations.value;
 
-  // 1. 상태 필터링
-  if (statusFilter.value !== 'all') {
-    tempReservations = tempReservations.filter(booking => booking.status.code === statusFilter.value);
-  }
+  // 1. 상태 필터링
+  if (statusFilter.value !== 'all') {
+    tempReservations = tempReservations.filter(booking => booking.status.code === statusFilter.value);
+  }
 
-  // 2. 검색어 필터링
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    tempReservations = tempReservations.filter(booking => {
-      if (searchType.value === 'guestName') {
-        return booking.guestName.toLowerCase().includes(query);
-      }
-      if (searchType.value === 'id') {
-        return booking.id.toLowerCase().includes(query);
-      }
-      return false;
-    });
-  }
+  // 2. 검색어 필터링
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    tempReservations = tempReservations.filter(booking => {
+      if (searchType.value === 'guestName') {
+        return booking.guestName.toLowerCase().includes(query);
+      }
+      if (searchType.value === 'id') {
+        // 예약 번호가 숫자일 수 있으므로 문자열로 변환하여 검색
+        return String(booking.id).toLowerCase().includes(query);
+      }
+      return false;
+    });
+  }
 
-  return tempReservations;
+  return tempReservations;
 });
 
 const canceledBookingsCount = computed(() => {
-  return reservations.value.filter(b => b.status.code === 'cancelled').length;
+  return reservations.value.filter(b => b.status.code === 'cancelled').length;
 });
 
-// [제거] 테이블 내 상태 변경 함수는 이제 필요 없음
 
-// [설명] 예약 데이터 자동 삭제 정책
-// 실제 프로덕션 환경에서는 프론트엔드가 아닌 백엔드(서버)에서
-// 매일 정해진 시간에 스케줄러(Scheduler, 예: cron job)를 실행하여
-// 3개월이 지난 예약 데이터를 삭제하는 로직을 구현해야 합니다.
-// 예시 SQL: DELETE FROM reservations WHERE checkin_date < DATE_SUB(NOW(), INTERVAL 3 MONTH);
+// ---------------- 이하 코드는 기존과 동일합니다 (데이터만 변경됨) ----------------
 
+const salesData = {
+  all: { total: 125800000, monthly: 32500000, daily: 1200000, todayBookings: 7 },
+  '호텔': { monthly: 15000000, daily: 600000 },
+  '펜션': { monthly: 8000000, daily: 350000 },
+  '한옥': { monthly: 5500000, daily: 150000 },
+  '관광호텔': { monthly: 4000000, daily: 100000 },
+};
+const salesFilterType = ref('all');
+const salesFilterTypes = [
+  { key: 'all', text: '전체' },
+  { key: '호텔', text: '🏨 호텔' },
+  { key: '펜션', text: '🏡 펜션' },
+  { key: '한옥', text: '🏯 한옥' },
+  { key: '관광호텔', text: '🏢 관광호텔' },
+];
+const filteredSales = computed(() => {
+  const type = salesFilterType.value;
+  if (type === 'all' || !salesData[type]) {
+    return salesData.all;
+  }
+  return {
+    total: salesData.all.total,
+    monthly: salesData[type].monthly,
+    daily: salesData[type].daily,
+    todayBookings: salesData.all.todayBookings
+  };
+});
+const todayBookingsDetails = ref([
+  { id: 1, hotelName: '쉼, 서울 호텔', roomName: '스탠다드 더블', guestName: '김예약' },
+  { id: 2, hotelName: '오션뷰, 부산 펜션', roomName: '오션뷰 스파', guestName: '이바다' },
+]);
 const reviews = ref([
-  { id: 1, userName: '김여행', hotelName: '쉼, 서울 호텔', stars: 5, date: '2025-09-10', text: '위치도 좋고 시설도 깔끔해서 좋았어요. 다음에 또 방문할 의사 있습니다!' },
-  { id: 2, userName: '박호캉스', hotelName: '고요, 경주 한옥', stars: 2, date: '2025-09-08', text: '방음이 너무 안돼서 잠을 설쳤습니다. 개선이 필요해 보입니다.' },
+  { id: 1, userName: '김여행', hotelName: '쉼, 서울 호텔', stars: 5, date: '2025-09-10', text: '위치도 좋고 시설도 깔끔해서 좋았어요. 다음에 또 방문할 의사 있습니다!' },
+  { id: 2, userName: '박호캉스', hotelName: '고요, 경주 한옥', stars: 2, date: '2025-09-08', text: '방음이 너무 안돼서 잠을 설쳤습니다. 개선이 필요해 보입니다.' },
 ]);
 const managerAccount = ref({ companyName: '(주)쉼호텔', businessNumber: '123-45-67890' });
-
 const managedProperties = ref([
-  { id: 1, name: '쉼, 서울 호텔', type: '호텔', location: '서울 중구', stars: 5, latitude: '37.5665', longitude: '126.9780', checkInTime: '15:00', checkOutTime: '11:00', image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1780&q=80', images: ['https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1780&q=80'], rooms: [{ id: 1, name: '스탠다드 더블', price: 150000, quantity: 20, maxOccupancy: 2, active: true, image: '' }], amenities: ['무료 Wi-Fi (모든 객실)', '24시간 프런트 데스크'] },
-  { id: 2, name: '고요, 경주 한옥', type: '한옥', location: '경북 경주시', stars: 0, latitude: '35.8436', longitude: '129.2126', checkInTime: '16:00', checkOutTime: '11:00', image: 'https://images.unsplash.com/photo-1566649872520-227545d165f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80', images: [], rooms: [{ id: 1, name: '사랑채', price: 250000, quantity: 3, maxOccupancy: 4, active: true, image: '' }], amenities: ['무료 Wi-Fi (모든 객실)', '정원'] },
-  { id: 3, name: '오션뷰, 부산 펜션', type: '펜션', location: '부산 해운대구', stars: 0, latitude: '35.1631', longitude: '129.1636', checkInTime: '15:00', checkOutTime: '12:00', image: 'https://images.unsplash.com/photo-1598533804259-e931b2641042?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1858&q=80', images: [], rooms: [{ id: 1, name: '오션뷰 스파', price: 180000, quantity: 5, maxOccupancy: 3, active: true, image: '' }], amenities: ['무료 Wi-Fi (모든 객실)', '주차 가능'] },
-  { id: 4, name: '시티투어, 서울 관광호텔', type: '관광호텔', location: '서울 강남구', stars: 4, latitude: '37.5172', longitude: '127.0473', checkInTime: '14:00', checkOutTime: '12:00', image: 'https://images.unsplash.com/photo-1561501900-3701fa6a0864?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80', images: [], rooms: [{ id: 1, name: '비즈니스 트윈', price: 120000, quantity: 30, maxOccupancy: 2, active: true, image: '' }], amenities: ['무료 Wi-Fi (모든 객실)', '조식 서비스'] },
+  { id: 1, name: '쉼, 서울 호텔', type: '호텔', location: '서울 중구', stars: 5, latitude: '37.5665', longitude: '126.9780', checkInTime: '15:00', checkOutTime: '11:00', image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1780&q=80', images: ['https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1780&q=80'], rooms: [{ id: 1, name: '스탠다드 더블', price: 150000, quantity: 20, maxOccupancy: 2, active: true, image: '' }], amenities: ['무료 Wi-Fi (모든 객실)', '24시간 프런트 데스크'] },
 ]);
-
 const allAmenities = ref([ '셀프 주차 (추가 비용 발생)', '무료 Wi-Fi (모든 객실)', '조식 서비스', '자동판매기', '금연 숙소', '여행 가방 보관 서비스', '24시간 프런트 데스크', '익스프레스 체크인', '정원', '24시간 피트니스 시설', '엘리베이터', '휠체어 접근 가능', '발코니/테라스', '공용 전자레인지', '다국어 가능 직원' ]);
-
 const chartTitle = computed(() => {
-  const filterText = salesFilterType.value === 'all' ? '전체' : salesFilterType.value;
-  if (selectedMetric.value === 'total') return `총 매출 상세 분석`;
-  if (selectedMetric.value === 'monthly') return `${filterText} 월별 매출 추이`;
-  if (selectedMetric.value === 'daily') return `${filterText} 일별 매출 상세`;
-  return '매출 현황';
+  const filterText = salesFilterType.value === 'all' ? '전체' : salesFilterType.value;
+  if (selectedMetric.value === 'total') return `총 매출 상세 분석`;
+  if (selectedMetric.value === 'monthly') return `${filterText} 월별 매출 추이`;
+  if (selectedMetric.value === 'daily') return `${filterText} 일별 매출 상세`;
+  return '매출 현황';
 });
-
 const monthlySalesData = {
-  labels: ['4월', '5월', '6월', '7월', '8월', '9월'],
-  all: [28000000, 35000000, 31000000, 42000000, 51000000, 32500000],
-  '호텔': [12000000, 16000000, 14000000, 18000000, 22000000, 15000000],
-  '펜션': [8000000, 9000000, 8500000, 11000000, 13000000, 8000000],
-  '한옥': [5000000, 6000000, 5500000, 7000000, 9000000, 5500000],
-  '관광호텔': [3000000, 4000000, 3000000, 6000000, 7000000, 4000000]
+  labels: ['4월', '5월', '6월', '7월', '8월', '9월'],
+  all: [28000000, 35000000, 31000000, 42000000, 51000000, 32500000],
+  '호텔': [12000000, 16000000, 14000000, 18000000, 22000000, 15000000],
 };
-
 const chartData = computed(() => {
-  const type = salesFilterType.value;
-  const data = monthlySalesData[type] || monthlySalesData.all;
-  
-  return {
-    labels: monthlySalesData.labels,
-    datasets: [
-      {
-        label: `${type === 'all' ? '전체' : type} 매출 (원)`,
-        backgroundColor: '#3498DB',
-        borderRadius: 6,
-        data: data,
-      },
-    ],
-  };
+  const type = salesFilterType.value;
+  const data = monthlySalesData[type] || monthlySalesData.all;
+  return {
+    labels: monthlySalesData.labels,
+    datasets: [{
+        label: `${type === 'all' ? '전체' : type} 매출 (원)`,
+        backgroundColor: '#3498DB',
+        borderRadius: 6,
+        data: data,
+    },],
+  };
 });
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-    tooltip: {
-      callbacks: {
-        label: function (context) {
-          let label = context.dataset.label || '';
-          if (label) {
-            label += ': ';
-          }
-          if (context.parsed.y !== null) {
-            label += new Intl.NumberFormat('ko-KR').format(context.parsed.y) + '원';
-          }
-          return label;
-        },
-      },
-    },
-  },
-  scales: {
-    y: {
-      ticks: {
-        callback: function (value) {
-          return new Intl.NumberFormat('ko-KR', {
-            notation: 'compact',
-            compactDisplay: 'short',
-          }).format(value);
-        },
-      },
-    },
-  },
-};
-
+const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false, }, tooltip: { callbacks: { label: function (context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += new Intl.NumberFormat('ko-KR').format(context.parsed.y) + '원'; } return label; }, }, }, }, scales: { y: { ticks: { callback: function (value) { return new Intl.NumberFormat('ko-KR', { notation: 'compact', compactDisplay: 'short', }).format(value); }, }, }, }, };
 const editFormTitle = computed(() => selectedPropertyForEdit.value ? `"${selectedPropertyForEdit.value.name}" 숙소 관리` : `새 ${selectedPropertyType.value} 등록`);
 const filteredProperties = computed(() => managedProperties.value.filter(p => p.type === selectedPropertyType.value));
-
 const goHome = () => { activeView.value = 'dashboard'; accommodationView.value = 'typeSelection'; };
 const getPropertyCount = (type) => managedProperties.value.filter(p => p.type === type).length;
 const selectPropertyType = (type) => { selectedPropertyType.value = type; accommodationView.value = 'list'; };
 const editProperty = (property) => { selectedPropertyForEdit.value = property; editableHotel.value = JSON.parse(JSON.stringify(property)); accommodationView.value = 'edit'; };
-const addNewProperty = () => {
-  selectedPropertyForEdit.value = null;
-  editableHotel.value = { 
-    id: Date.now(), name: '', type: selectedPropertyType.value, location: '', stars: 0, 
-    latitude: '', longitude: '', checkInTime: '15:00', checkOutTime: '11:00',
-    image: '', images: [], rooms: [], amenities: [] 
-  };
-  accommodationView.value = 'edit';
-};
+const addNewProperty = () => { selectedPropertyForEdit.value = null; editableHotel.value = { id: Date.now(), name: '', type: selectedPropertyType.value, location: '', stars: 0, latitude: '', longitude: '', checkInTime: '15:00', checkOutTime: '11:00', image: '', images: [], rooms: [], amenities: [] }; accommodationView.value = 'edit'; };
 const triggerFileInput = (type, index) => { imageUpdateTarget.value = { type, index }; fileInputRef.value.click(); };
-const handleFileSelect = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const imageUrl = e.target.result;
-    const { type, index } = imageUpdateTarget.value;
-    if (type === 'main') editableHotel.value.images[index] = imageUrl;
-    else if (type === 'sub') editableHotel.value.images[index] = imageUrl;
-    else if (type === 'room') editableHotel.value.rooms[index].image = imageUrl;
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-};
-const addRoom = () => {
-  if (editableHotel.value) {
-    editableHotel.value.rooms.push({ 
-      id: Date.now(), name: '', price: 0, quantity: 1, maxOccupancy: 2, active: true, image: '' 
-    });
-  }
-};
+const handleFileSelect = (event) => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const imageUrl = e.target.result; const { type, index } = imageUpdateTarget.value; if (type === 'main') editableHotel.value.images[index] = imageUrl; else if (type === 'sub') editableHotel.value.images[index] = imageUrl; else if (type === 'room') editableHotel.value.rooms[index].image = imageUrl; }; reader.readAsDataURL(file); event.target.value = ''; };
+const addRoom = () => { if (editableHotel.value) { editableHotel.value.rooms.push({ id: Date.now(), name: '', price: 0, quantity: 1, maxOccupancy: 2, active: true, image: '' }); } };
 const removeRoom = (index) => { if (editableHotel.value) { editableHotel.value.rooms.splice(index, 1); } };
 const saveChanges = () => { alert('변경사항이 저장되었습니다.'); accommodationView.value = 'list'; };
 const cancelChanges = () => { accommodationView.value = 'list'; };
+
 </script>
 
 <style scoped>

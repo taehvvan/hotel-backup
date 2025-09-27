@@ -8,6 +8,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
+import com.example.backend.login.security.PrincipalDetails;
+import com.example.backend.register.UserEntity;
+
 import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
@@ -34,14 +37,17 @@ public class JwtTokenProvider {
     }
 
     // 액세스 토큰 생성
-    public String generateAccessToken(String email, String role, Integer uId) {
+    public String generateAccessToken(Authentication authentication) {
+        PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
+        UserEntity user = principalDetails.getUser();
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(email)
-                .claim("role", role)
-                .claim("u_id", uId)
+                .setSubject(user.getEmail())
+                .claim("role", user.getRole())
+                .claim("u_id", user.getId())
+                .claim("businessNumber", user.getBusinessNumber())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(key, SignatureAlgorithm.HS512)
@@ -49,13 +55,15 @@ public class JwtTokenProvider {
     }
     
     // 리프레시 토큰 생성
-    public String generateRefreshToken(String email, Integer uId) {
+    public String generateRefreshToken(Authentication authentication) {
+        PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
+        UserEntity user = principalDetails.getUser();
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(email)
-                .claim("u_id", uId)
+                .setSubject(user.getEmail())
+                .claim("u_id", user.getId())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(key, SignatureAlgorithm.HS512)
@@ -73,11 +81,19 @@ public class JwtTokenProvider {
 
         String username = claims.getSubject();
         String role = claims.get("role", String.class);
+        Integer uId = claims.get("u_id", Integer.class);
+        String businessNumber = claims.get("businessNumber", String.class);
 
-        List<SimpleGrantedAuthority> authorities =
-                Collections.singletonList(new SimpleGrantedAuthority(role));
+        UserEntity user = new UserEntity();
+        user.setId(uId);
+        user.setEmail(username);
+        user.setRole(role);
+        user.setBusinessNumber(businessNumber);
 
-        return new UsernamePasswordAuthenticationToken(username, "", authorities);
+        PrincipalDetails principalDetails = new PrincipalDetails(user);
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+
+        return new UsernamePasswordAuthenticationToken(principalDetails, "", authorities);
     }
 
     // JWT에서 이메일(사용자명) 추출

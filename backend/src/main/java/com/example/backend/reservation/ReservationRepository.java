@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Integer> {
 
@@ -19,10 +20,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
            "ORDER BY r.checkin DESC")
     List<ReservationResponseDTO> findMyReservationsByUserId(@Param("userId") Integer userId);
 
-    Reservation findByReId(Integer reId);
+    Optional<Reservation> findByReId(Integer reId);
+
 
     @Query("SELECT r FROM Reservation r WHERE r.user.id = :userId")
     List<Reservation> findRawReservationsByUserIdForDebug(@Param("userId") Integer userId);
+
+    List<Reservation> findByHotel_hIdIn(List<Long> hotelIds);
 
     
 }

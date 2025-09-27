@@ -1,12 +1,18 @@
 package com.example.backend.register;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.backend.login.dto.TokenResponse;
+import com.example.backend.login.security.PrincipalDetails;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 
 import jakarta.validation.Valid;
@@ -53,6 +59,10 @@ public class UserService {
             throw new IllegalArgumentException("이메일이 이미 사용중 입니다.");
         }
 
+        if (request.getBusinessNumber() == null || request.getBusinessNumber().isEmpty()) {
+            throw new IllegalArgumentException("사업자 번호는 필수입니다.");
+        }
+
         UserEntity user = new UserEntity();
         user.setEmail(request.getEmail());
         user.setName(request.getName());
@@ -86,12 +96,19 @@ public class UserService {
     }
 
     // 리프레시 토큰으로 액세스 토큰 재발급
-    public TokenResponse refreshAccessToken(String refreshToken) {
+     public TokenResponse refreshAccessToken(String refreshToken) {
+        // 1. DB에서 리프레시 토큰으로 사용자 정보를 찾습니다.
         UserEntity user = userRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다."));
 
-        // 새로운 액세스 토큰 생성
-        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
+        // 2. 사용자 정보를 기반으로 Authentication 객체를 생성합니다.
+        PrincipalDetails principalDetails = new PrincipalDetails(user);
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
+        Authentication authentication = new UsernamePasswordAuthenticationToken(principalDetails, "", authorities);
+
+        // 3. Authentication 객체를 사용하여 새로운 액세스 토큰을 생성합니다.
+        String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
+        
         return new TokenResponse("Bearer", newAccessToken, refreshToken, jwtTokenProvider.getAccessTokenExpirationInMilliSeconds());
     }
     

@@ -7,6 +7,8 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.backend.register.UserEntity;
+
 @Getter
 @Setter
 @Entity
@@ -46,6 +48,10 @@ public class Hotel {
 
     @Column(name = "status", nullable = false)
     private String status = "대기";
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "u_id")
+    private UserEntity user;
 
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HotelImage> images = new ArrayList<>();

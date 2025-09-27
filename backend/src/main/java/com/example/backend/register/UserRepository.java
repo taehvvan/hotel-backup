@@ -17,6 +17,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Integer> {
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
     Optional<UserEntity> findByRefreshToken(String refreshToken);
+    Optional<UserEntity> findByBusinessNumber(String businessNumber);
 
     // [추가된 코드] 관리자 페이지를 위한 사용자 검색 및 필터링 쿼리
     @Query("SELECT new com.example.backend.admin.AdminUserDto(u.id, u.name, u.email, u.role, u.social) " +

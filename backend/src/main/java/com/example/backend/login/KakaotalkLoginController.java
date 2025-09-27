@@ -1,15 +1,22 @@
 package com.example.backend.login;
 
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.login.dto.TokenResponse;
+import com.example.backend.login.security.PrincipalDetails;
 import com.example.backend.login.security.jwt.JwtTokenProvider;
 import com.example.backend.register.UserEntity;
 import com.example.backend.register.UserService;
@@ -52,9 +59,13 @@ public class KakaotalkLoginController {
         try {
             UserEntity user = userService.kakaoLoginOrRegister(code);
 
+            PrincipalDetails principalDetails = new PrincipalDetails(user);
+            List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
+            Authentication authentication = new UsernamePasswordAuthenticationToken(principalDetails, "", authorities);
+
             // 액세스 토큰 + 리프레시 토큰 생성
-            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail(), user.getId());
+            String accessToken = jwtTokenProvider.generateAccessToken(authentication);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
             // DB에 리프레시 토큰 저장
             userService.saveRefreshToken(user, refreshToken);

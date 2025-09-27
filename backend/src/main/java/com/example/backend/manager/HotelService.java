@@ -1,29 +1,30 @@
 package com.example.backend.manager;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.backend.reservation.Reservation;
+import com.example.backend.reservation.ReservationRepository;
 import com.example.backend.search.Hotel;
 import com.example.backend.search.HotelDTO;
 import com.example.backend.search.HotelRepository;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class HotelService {
 
     private final HotelRepository hotelRepository;
     private final HotelPicRepository hotelPicRepository;
     private final FileStorageService fileStorageService;
+    private final ReservationRepository reservationRepository;
 
-    public HotelService(HotelRepository hotelRepository, HotelPicRepository hotelPicRepository,
-            FileStorageService fileStorageService) {
-        this.hotelRepository = hotelRepository;
-        this.hotelPicRepository = hotelPicRepository;
-        this.fileStorageService = fileStorageService;
-    }
+
 
     @Transactional
     public Hotel saveHotel(HotelDTO dto, List<MultipartFile> images) {
