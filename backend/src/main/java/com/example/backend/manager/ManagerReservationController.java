@@ -1,12 +1,23 @@
 package com.example.backend.manager;
 
 import com.example.backend.login.security.PrincipalDetails;
+import com.example.backend.register.UserEntity;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,22 +27,78 @@ import java.util.List;
 public class ManagerReservationController {
 
     private final ManagerReservationService managerReservationService;
+    private final ManagerHotelService managerHotelService;
 
     @GetMapping("/reservations")
     public ResponseEntity<List<ManagerReservationDTO>> getManagerReservations(
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
         
-        if (principalDetails == null || principalDetails.getUser() == null) {
-            return ResponseEntity.status(401).build(); // 인증되지 않은 사용자
-        }
-
-        // 1. 로그인 정보에서 사업자 등록번호(business_number)를 가져옵니다.
-        String businessNumber = principalDetails.getUser().getBusinessNumber();
-
-        // 2. 서비스를 호출하여 예약 목록을 가져옵니다.
-        List<ManagerReservationDTO> reservations = managerReservationService.getAllReservationsForManager(businessNumber);
-
-        // 3. 조회된 예약 목록을 반환합니다.
+        // 현재 로그인한 매니저(owner)의 ID를 가져옵니다.
+        Integer ownerId = principalDetails.getUser().getId(); 
+        
+        List<ManagerReservationDTO> reservations = managerReservationService.getReservationsForManager(ownerId);
         return ResponseEntity.ok(reservations);
+    }
+
+    @GetMapping("/hotels")
+    public ResponseEntity<List<ManagerHotelDTO>> getManagerHotels(
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        Integer managerId = principalDetails.getUser().getId();
+        List<ManagerHotelDTO> hotels = managerHotelService.getHotelsByManager(managerId);
+        return ResponseEntity.ok(hotels);
+    }
+
+    @PostMapping(value = "/hotels", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<ManagerHotelDTO> createHotel(
+            @RequestPart("hotelDto") HotelSaveRequestDto hotelDto,
+            @RequestPart("images") List<MultipartFile> images,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        UserEntity manager = principalDetails.getUser();
+        ManagerHotelDTO createdHotel = managerHotelService.createHotel(hotelDto, images, manager);
+        return ResponseEntity.ok(createdHotel);
+    }
+
+    @GetMapping("/hotels/{hotelId}")
+    public ResponseEntity<ManagerHotelDTO> getHotelById(
+            @PathVariable Long hotelId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        UserEntity manager = principalDetails.getUser();
+        ManagerHotelDTO hotelDetails = managerHotelService.getHotelDetails(hotelId, manager);
+        return ResponseEntity.ok(hotelDetails);
+    }
+
+    @PutMapping("/hotels/{hotelId}")
+    public ResponseEntity<ManagerHotelDTO> updateHotel(
+            @PathVariable Long hotelId,
+            @RequestBody HotelSaveRequestDto hotelDto, // 이미지 없는 DTO 사용
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        UserEntity manager = principalDetails.getUser();
+        ManagerHotelDTO updatedHotel = managerHotelService.updateHotel(hotelId, hotelDto, manager);
+        return ResponseEntity.ok(updatedHotel);
+    }
+
+    @PostMapping(value = "/hotels/{hotelId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> addImagesToHotel(
+            @PathVariable Long hotelId,
+            @RequestPart("images") List<MultipartFile> images,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        UserEntity manager = principalDetails.getUser();
+        managerHotelService.addImagesToHotel(hotelId, images, manager);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/hotels/{hotelId}")
+    public ResponseEntity<Void> deleteHotel(
+            @PathVariable Long hotelId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        UserEntity manager = principalDetails.getUser();
+        managerHotelService.deleteHotel(hotelId, manager);
+        return ResponseEntity.ok().build();
     }
 }

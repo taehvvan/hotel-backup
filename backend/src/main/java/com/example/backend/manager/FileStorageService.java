@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -17,19 +18,35 @@ public class FileStorageService {
     @Value("${file.upload-dir}")
     private String baseDir;
 
-    public FileStorageResult saveHotelImage(Long hotelId, MultipartFile file) {
+    public FileStorageResult saveHotelImage(Long hotelId, String hotelType, MultipartFile file, int imageIndex) {
         try {
-            String hotelDir = baseDir + "/hotels/" + hotelId + "/";
+            String hotelDir = baseDir + "/" + hotelType + "/";
             File dir = new File(hotelDir);
             if (!dir.exists()) {
                 dir.mkdirs();
             }
 
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path filePath = Paths.get(hotelDir + fileName);
+            // --- 파일명 생성 로직 ---
+            String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+            String extension = "";
+            if (originalFileName.contains(".")) {
+                extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            }
+
+            String newFileName;
+            if (imageIndex == 0) {
+                // 첫 번째 이미지(메인 이미지)는 h_id로만 저장
+                newFileName = hotelId + extension;
+            } else {
+                // 두 번째 이미지부터는 h_id_[순번]으로 저장
+                newFileName = hotelId + "_" + imageIndex + extension;
+            }
+            // ---------------------
+
+            Path filePath = Paths.get(hotelDir + newFileName);
             file.transferTo(filePath);
 
-            return new FileStorageResult(hotelDir, fileName);
+            return new FileStorageResult(hotelDir, newFileName);
         } catch (IOException e) {
             throw new RuntimeException("호텔 이미지 저장 실패", e);
         }

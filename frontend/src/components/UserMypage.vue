@@ -57,6 +57,7 @@
                 </div>
                 <div class="card-info">
                   <h5 class="place-name">{{ reservation.placeName }}</h5>
+                  <p class="order-id"><strong>예약 번호:</strong> {{ reservation.orderId }}</p>
                   <p class="reservation-details">
                     <span><strong>객실:</strong> {{ reservation.roomType }}</span>
                     <span><strong>주소:</strong> {{ reservation.address }}</span>
@@ -100,7 +101,7 @@
             >
               <div class="card-image">
                 <img
-                  :src="reservation.hotelImage"
+                  :src="reservation.image"
                   :alt="reservation.roomType || reservation.hotelName"
                 />
               </div>
@@ -309,9 +310,10 @@ const fetchReservations = async () => {
       console.log(`✅ [2단계] 예약 ID ${item.reservationId}의 최종 이미지 URL:`, finalImageSrc);
         
       return {
-      reservationId: item.reservationId,
+        reservationId: item.reservationId,
+        orderId: item.orderId,
         placeName: item.hotelName,
-        image: item.hotelImage || `http://localhost:8888/images/${item.hotelType || 'default'}/${item.hotelId || '0'}.jpg`,
+        image: finalImageSrc,
         guests: item.people || item.guestCount,
         checkIn: item.checkIn,
         checkOut: item.checkOut,
@@ -329,6 +331,7 @@ const fetchReservations = async () => {
       if (route.query.reservationId) {
         reservations.value.push({
           reservationId: route.query.reservationId,
+          orderId: route.query.orderId,
           placeName: route.query.hotelName,
           image: `http://localhost:8888/images/${route.query.hotelType || 'default'}/${route.query.hotelId || '0'}.jpg`,
           guests: route.query.people,
@@ -481,6 +484,12 @@ const deleteCancelledReservation = async (reservationId) => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+.order-id {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 5px 0 10px 0;
+}
 
 .mypage-container {
   min-height: 100vh;

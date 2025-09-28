@@ -10,13 +10,17 @@ import lombok.Getter;
 @Getter
 public class ReservationPrepareResponse {
 
+    private final String orderId;
     private final Integer reservationId;
-    private final RoomDTO room;
-    private final HotelDTO hotel;
+    private final String hotelName;
+    private final String type;
+    private final int amount;
 
     public ReservationPrepareResponse(Reservation reservation) {
+        this.orderId = reservation.getOrderId();
         this.reservationId = reservation.getReId();
-        this.room = new RoomDTO(reservation.getRoom());
-        this.hotel = new HotelDTO(reservation.getRoom().getHotel());
+        this.hotelName = reservation.getHotel().getHName();
+        this.type = reservation.getRoom().getType();
+        this.amount = reservation.getPrice();
     }
 }

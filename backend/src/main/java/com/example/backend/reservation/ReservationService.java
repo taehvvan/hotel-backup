@@ -2,6 +2,8 @@ package com.example.backend.reservation;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.register.UserEntity;
 import com.example.backend.register.UserRepository;
 import com.example.backend.search.Hotel;
+import com.example.backend.search.HotelImage;
 import com.example.backend.search.HotelRepository;
 import com.example.backend.search.Room;
 import com.example.backend.search.RoomRepository;
@@ -29,6 +32,11 @@ public class ReservationService {
 
     @Transactional
     public ReservationPrepareResponse createReservation(ReservationRequest request) {
+
+        if (request.getCheckin() == null || request.getCheckout() == null) {
+            throw new IllegalArgumentException("체크인 또는 체크아웃 날짜가 누락되었습니다.");
+        }
+
         // 1. 객실 조회
         Room room = roomRepository.findById(request.getRId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다. ID: " + request.getRId()));
@@ -63,15 +71,32 @@ public class ReservationService {
     }
 
     public List<ReservationResponseDTO> findMyReservations(Integer userId) {
-        return reservationRepository.findMyReservationsByUserId(userId);
+        // 1. 유저 ID로 Reservation 엔티티 목록을 조회합니다.
+        List<Reservation> reservations = reservationRepository.findByUser_IdOrderByReIdDesc(userId);
+        // 2. 스트림을 사용해 각 엔티티를 DTO로 변환합니다.
+        return reservations.stream()
+                .map(this::convertToDto) // 아래에 추가된 convertToDto 메서드 사용
+                .collect(Collectors.toList());
     }
 
-    public ReservationResponseDTO findGuestReservation(Integer reId, String phone) {
-        Payment payment = paymentRepository.findByReservation_ReIdAndPhone(reId, phone).orElse(null);
+    // 👇 [추가] orderId로 예약 정보를 조회하는 메서드
+    @Transactional(readOnly = true)
+    public ReservationResponseDTO getReservationByOrderId(String orderId) {
+        Reservation reservation = reservationRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("예약 정보를 찾을 수 없습니다. Order ID: " + orderId));
+        return convertToDto(reservation);
+    }
+
+    // 👇 [수정] findGuestReservation 메서드 로직 변경
+    public ReservationResponseDTO findGuestReservationByOrderId(String orderId, String phone) {
+        Payment payment = paymentRepository.findByReservation_OrderIdAndPhone(orderId, phone)
+            .orElse(null);
+        
         if (payment == null || payment.getReservation() == null) {
             return null;
         }
-        return new ReservationResponseDTO(payment.getReservation());
+        
+        return convertToDto(payment.getReservation());
     }
 
     public Reservation findReservationById(Integer reservationId) {
@@ -109,5 +134,47 @@ public class ReservationService {
         }
         reservation.setStatus("삭제됨");
         reservationRepository.save(reservation);
+    }
+
+    private ReservationResponseDTO convertToDto(Reservation reservation) {
+        if (reservation == null) {
+            return null;
+        }
+        
+        Hotel hotel = reservation.getHotel();
+        Room room = reservation.getRoom();
+
+        // ★★★★★ 1. 호텔 이미지 URL을 찾고, 완전한 경로로 보정합니다. ★★★★★
+        String hotelImageUrl = Optional.ofNullable(hotel)
+                .flatMap(h -> h.getImages().stream()
+                        // 'main' 타입 이미지를 우선적으로 찾습니다.
+                        .filter(img -> "main".equalsIgnoreCase(img.getImageType()))
+                        .map(HotelImage::getImageUrl)
+                        .findFirst()
+                        // 'main' 이미지가 없으면 첫 번째 이미지를 사용합니다.
+                        .or(() -> h.getImages().stream().map(HotelImage::getImageUrl).findFirst()))
+                .map(url -> {
+                    // URL이 http로 시작하지 않는 상대 경로이면, 서버 주소를 앞에 붙여줍니다.
+                    if (url != null && !url.startsWith("http")) {
+                        return "http://localhost:8888" + url;
+                    }
+                    return url; // 이미 완전한 URL이면 그대로 반환합니다.
+                })
+                .orElse(null); // 이미지가 하나도 없으면 null
+
+        // ★★★★★ 2. 빌더를 사용하여 DTO를 생성합니다. ★★★★★
+        return ReservationResponseDTO.builder()
+                .reservationId(reservation.getReId())
+                .orderId(reservation.getOrderId())
+                .hotelName(hotel != null ? hotel.getHName() : "N/A")
+                .roomType(room != null ? room.getType() : "N/A")
+                .address(hotel != null ? hotel.getAddress() : "N/A")
+                .hotelImage(hotelImageUrl) // 보정된 이미지 URL 사용
+                .checkIn(reservation.getCheckin())
+                .checkOut(reservation.getCheckout())
+                .status(reservation.getStatus())
+                .price(reservation.getPrice())
+                .people(reservation.getPeople())
+                .build();
     }
 }

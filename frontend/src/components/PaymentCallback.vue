@@ -54,7 +54,7 @@ onMounted(async () => {
       reId: paymentInfo.reservationId,
       rId: paymentInfo.roomId,
       hId: paymentInfo.hotelId,
-      orderId,
+      orderId: orderId,
       userId: paymentInfo.userId,
       phone: paymentInfo.phone,
       paymentKey,

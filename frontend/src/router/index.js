@@ -83,6 +83,13 @@ const routes = [
     })
   },
 
+  {
+      path: '/guest/booking/:orderId',
+      name: 'GuestBookingDetail',
+      component: GuestBookingDetail,
+      props: true // URL 파라미터(:orderId)를 컴포넌트의 props로 전달합니다.
+  },
+
   // --- 호텔 매니저 전용 페이지 ---
   {
     path: '/manager',

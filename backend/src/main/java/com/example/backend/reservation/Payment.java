@@ -41,7 +41,7 @@ public class Payment {
     private Room room;
 
     @ManyToOne
-    @JoinColumn(name = "re_id")
+    @JoinColumn(name = "order_id", referencedColumnName = "order_id")
     private Reservation reservation;
 
     @Column(name = "pay_method")
@@ -57,21 +57,17 @@ public class Payment {
     @Column(name = "payment_key", nullable = false, unique = true)
     private String paymentKey;
 
-    @Column(name = "order_id", nullable = false, unique = true)
-    private String orderId;
-
     @Column(name = "amount", nullable = false)
     private Long amount;
 
     @Builder
-    public Payment(UserEntity user, Room room, Reservation reservation, String payMethod, String phone, String paymentKey, String orderId, Long amount) {
+    public Payment(UserEntity user, Room room, Reservation reservation, String payMethod, String phone, String paymentKey, Long amount) {
         this.user = user;
         this.room = room;
         this.reservation = reservation;
         this.payMethod = payMethod;
         this.phone = phone;
         this.paymentKey = paymentKey;
-        this.orderId = orderId;
         this.amount = amount;
     }
 

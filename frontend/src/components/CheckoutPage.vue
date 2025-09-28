@@ -278,64 +278,60 @@ let availableCount = room.availabilities.length > 0
   ? Math.min(...room.availabilities.map(a => a.availableCount)) // 선택 기간 중 최소 잔여 수
   : room.count;
 
-if (availableCount <= 0) {
-  return alert('죄송합니다. 선택한 날짜에 잔여 객실이 없습니다.');
-}
+if (availableCount <= 0) return alert('죄송합니다. 선택한 날짜에 잔여 객실이 없습니다.');
 
 if (!tossPayments.value) return alert('결제 모듈이 준비되지 않았습니다.');
 
-
-
-if (!room || !hotel || !search) {
-  return alert('예약 정보가 올바르지 않습니다.');
-}
-
-// --- 🕵️‍♂️ 디버깅 코드 추가 ---
-console.log("bookingStore.room 객체의 실제 내용:", room);
-
-// localStorage에 최소한의 정보 저장
-// localStorage.setItem('reservationId', reservationId);
-// localStorage.setItem('roomId', bookingStore.room.rId);
-// localStorage.setItem('hotelId', bookingStore.hotel.hId);
+if (!room || !hotel || !search) return alert('예약 정보가 올바르지 않습니다.');
 
 try {
+    // --- 1. [핵심] 백엔드에 '결제 준비' API를 호출하여 임시 예약을 생성합니다. ---
+    const prepareResponse = await axios.post('http://localhost:8888/api/reservations/prepare', {
+      // 서버(ReservationRequest.java)에서 요구하는 필드들을 전송합니다.
+      rId: bookingStore.room.rId,
+      hId: bookingStore.hotel.hId,
+      uId: authStore.isLoggedIn ? authStore.userId : null,
+      checkin: bookingStore.checkIn,
+      checkout: bookingStore.checkout,
+      people: bookingStore.guests,
+      price: finalPrice.value,
+    });
 
-  // 1. 결제 완료 후 필요한 정보를 localStorage에 저장
+    // --- 2. API 응답에서 백엔드가 생성한 8자리 orderId와 임시 예약 ID(reId)를 추출합니다. ---
+    const { orderId, reservationId } = prepareResponse.data;
+
+    if (!orderId || !reservationId) {
+      throw new Error("서버로부터 유효한 예약 정보를 받지 못했습니다.");
+    }
+
+    // --- 3. 결제 완료 후 Callback 페이지에서 사용할 정보를 localStorage에 저장합니다. ---
     const paymentInfo = {
-      reservationId: reservationId,
+      reservationId: reservationId, // 백엔드에서 받은 임시 예약 ID
       roomId: bookingStore.room.rId,
       hotelId: bookingStore.hotel.hId,
       userId: authStore.isLoggedIn ? authStore.userId : null,
       phone: phoneNumber.value,
-      amount: finalPrice.value,
-      orderName: `${bookingStore.hotel.hname} - ${bookingStore.room.type}`
+      // amount와 orderName은 토스 결제창에 직접 전달하므로 저장할 필요는 없습니다.
     };
-
-    // 객체를 JSON 문자열로 변환하여 저장
     localStorage.setItem('paymentInfo', JSON.stringify(paymentInfo));
 
-    const orderId = `room-reservation-${Date.now()}`;
-
-    // 1. 결제 요청
-    await tossPayments.value.requestPayment('card', {
+    // --- 4. 백엔드에서 받은 orderId로 토스페이먼츠 결제창을 호출합니다. ---
+    await tossPayments.value.requestPayment('card', { // '카드' 외 다른 결제수단 가능
       amount: finalPrice.value,
-      orderId,
-      orderName: paymentInfo.orderName,
-      customerName: authStore.userName || '고객',
+      orderId: orderId, // ✨ 백엔드에서 받은 8자리 예약번호
+      orderName: `${bookingStore.hotel.hname} - ${bookingStore.room.type}`,
+      customerName: authStore.userName || '비회원 고객', // 비회원일 경우를 대비한 기본값
       successUrl: `${window.location.origin}/payment-callback`,
-      failUrl: `${window.location.origin}/payment-fail`
+      failUrl: `${window.location.origin}/payment-fail`,
     });
 
-    // 2️. 결제 완료 후 예약 개수 차감
-    if (room.availabilities.length > 0) {
-      room.availabilities.forEach(a => a.availableCount -= 1);
-    } else {
-      room.count -= 1;
-    }
-
-    } catch (error) {
-        console.error('결제 정보 업데이트 또는 결제 요청 실패:', error);
-        alert('결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  } catch (error) {
+    console.error('결제 처리 중 오류 발생:', error);
+    // Axios 오류인 경우 서버에서 보낸 메시지를, 그 외에는 일반 오류 메시지를 표시합니다.
+    const errorMessage = error.response?.data?.message || error.message || '알 수 없는 오류가 발생했습니다.';
+    alert(`결제 처리 중 오류가 발생했습니다: ${errorMessage}`);
+    // 실패 시 저장했던 정보 삭제
+    localStorage.removeItem('paymentInfo');
   }
 };
 </script>

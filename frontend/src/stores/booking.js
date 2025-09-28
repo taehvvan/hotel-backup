@@ -12,6 +12,17 @@ export const useBookingStore = defineStore('booking', {
   }),
 
   actions: {
+    setBookingDetails(details) {
+      this.hotel = details.hotel;
+      this.room = details.room;
+      this.checkIn = details.checkIn;
+      this.checkout = details.checkout;
+      this.guests = details.guests;
+      
+      // 상태가 변경될 때마다 sessionStorage에 저장
+      sessionStorage.setItem('bookingState', JSON.stringify(this.$state));
+    },
+    
     setBooking(search, hotel, room) {
       this.search = search;
       this.hotel = toRaw(hotel);

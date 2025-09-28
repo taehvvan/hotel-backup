@@ -127,7 +127,7 @@
             </div>
           </div>
         </section>
-        
+
 
         <section id="amenities" class="detail-section">
           <h2>서비스 및 부대시설</h2>
@@ -425,87 +425,36 @@ watch(hotel, async (newVal) => {
 }, { deep: true });
 
 
-const goToCheckout = async (room, availableCount) => {
-  // [추가] hotel 데이터가 없으면 예약을 진행할 수 없습니다.
+const goToCheckout = (room, availableCount) => {
+  // --- 1. 유효성 검증 ---
   if (!hotel.value) {
     alert("호텔 정보가 로드되지 않았습니다.");
     return;
   }
-
-  // 재고가 0 이하이면 함수를 즉시 종료
   if (availableCount <= 0) {
     alert('해당 객실은 현재 예약이 불가능합니다.');
     return;
   }
-  
-  try {
-    const formatDate = (date) => new Date(date).toISOString().split("T")[0];
-    const checkinDate = formatDate(checkIn.value);
-    const checkoutDate = formatDate(checkOut.value);
-
-    const availabilityResponse = await axios.get(
-      `http://localhost:8888/api/rooms/${room.rId}/availabilities`,
-      {
-        params: { checkin: checkinDate, checkout: checkoutDate },
-      }
-    );
-
-    const availabilities = availabilityResponse.data;
-
-    // booking_room 객체 생성
-    const bookingRoom = {
-      ...room,
-      hId: hotel.value.hId,
-      checkin: checkinDate,
-      checkout: checkoutDate,
-      people: persons.value,
-      price: room.price * rooms.value,
-    };
-
-    // ✅ localStorage 저장
-    localStorage.setItem("booking_room", JSON.stringify(bookingRoom));
-    console.log("📦 booking_room 저장:", bookingRoom);
-
-    const reservationData = {
-      rId: room.rId,
-      uId: authStore.userId,
-      hId: hotel.value.hId, 
-      checkin: formatDate(checkIn.value),
-      checkout: formatDate(checkOut.value),
-      people: persons.value,
-      price: room.price * rooms.value,
-    };
-
-    console.log('--- [디버깅] 예약 요청 데이터 ---');
-    console.log('🏨 Hotel ID (hId):', reservationData.hId);
-    console.log('🚪 Room ID (rId):', reservationData.rId);
-    console.log('👤 User ID (uId):', reservationData.uId);
-    console.log('📦 전체 데이터 객체:', reservationData);
-
-    const reservationResponse = await axios.post('http://localhost:8888/api/reservations', reservationData, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    });
-
-    const reservationId = reservationResponse.data.reservationId;
-    if (!reservationId) {
-      throw new Error("서버 응답에서 reservationId를 찾을 수 없습니다.");
-    }
-    
-    bookingStore.setReservationId(reservationId);
-    
-    // [삭제] 중복되는 setBooking 호출 제거
-    router.push('/checkout');
-
-  } catch (error) {
-    console.error('예약 생성 중 오류 발생:', error);
-    if (error.response) {
-      alert(`예약 생성에 실패했습니다: ${error.response.data.message || '서버 오류'}`);
-    } else {
-      alert('예약 생성에 실패했습니다. 네트워크 연결을 확인해주세요.');
-    }
+  // [추가] 날짜 선택 유효성 검증
+  if (!checkIn.value || !checkOut.value) {
+    alert('체크인 및 체크아웃 날짜를 선택해주세요.');
+    return;
   }
+
+  // --- 2. [핵심 수정] Pinia 스토어에 모든 예약 정보를 저장합니다. ---
+  // 백엔드 API 호출 로직은 이 함수에서 제거합니다.
+  bookingStore.setBookingDetails({
+    hotel: toRaw(hotel.value), // ref 객체의 원본 데이터를 저장
+    room: toRaw(room),         // 선택한 객실 정보
+    checkIn: checkIn.value.toISOString().split('T')[0],   // YYYY-MM-DD 형식
+    checkout: checkOut.value.toISOString().split('T')[0], // YYYY-MM-DD 형식
+    guests: persons.value,     // 선택한 인원 수
+  });
+
+  console.log("📦 bookingStore에 예약 정보 저장 완료:", bookingStore.$state);
+
+  // --- 3. 결제 페이지로 이동합니다. ---
+  router.push('/checkout');
 };
 </script>
 

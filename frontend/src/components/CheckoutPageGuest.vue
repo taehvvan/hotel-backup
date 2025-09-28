@@ -147,7 +147,6 @@
       alert("결제 모듈이 준비되지 않았습니다.");
       return;
     }
-    const orderId = 'guest-reservation-' + new Date().getTime();
     
     try {
       await tossPayments.value.requestPayment('card', {

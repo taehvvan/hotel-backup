@@ -7,6 +7,7 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.backend.manager.HotelSaveRequestDto;
 import com.example.backend.register.UserEntity;
 
 @Getter
@@ -25,10 +26,10 @@ public class Hotel {
     @Column(name = "type", nullable = false)
     private String type;
 
-    @Column(name = "region", nullable = false)
+    @Column(name = "region")
     private String region;
 
-    @Column(name = "address", nullable = false)
+    @Column(name = "address")
     private String address;
 
     @Column(name = "latitude")
@@ -67,5 +68,15 @@ public class Hotel {
 
     @ManyToMany
     @JoinTable(name = "hotel_service", joinColumns = @JoinColumn(name = "h_id"), inverseJoinColumns = @JoinColumn(name = "service_id"))
-    private List<ServiceEntity> services = new ArrayList<>();;
+    private List<ServiceEntity> services = new ArrayList<>();
+
+    public void updateFromSaveRequestDto(HotelSaveRequestDto dto) {
+        this.hName = dto.getName();
+        this.address = dto.getLocation();
+        this.type = dto.getType();
+        this.star = dto.getStars();
+        this.latitude = dto.getLatitude();
+        this.longitude = dto.getLongitude();
+        // ... (HotelSaveRequestDto의 다른 필드들도 여기서 업데이트) ...
+    }
 }

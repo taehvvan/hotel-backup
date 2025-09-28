@@ -20,7 +20,7 @@ public class ReservationController {
     private final ReservationService reservationService;
     private final RoomAvailabilityService roomAvailabilityService;
 
-    @PostMapping
+    @PostMapping("/prepare")
     // ✅ ResponseEntity의 반환 타입을 ReservationPrepareResponse 로 변경
     public ResponseEntity<ReservationPrepareResponse> prepareReservation(@RequestBody ReservationRequest request) {
 
@@ -49,24 +49,25 @@ public class ReservationController {
         return ResponseEntity.ok(reservations);
     }
 
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<ReservationResponseDTO> getReservationByOrderId(@PathVariable String orderId) {
+        try {
+            ReservationResponseDTO reservation = reservationService.getReservationByOrderId(orderId);
+            return ResponseEntity.ok(reservation);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/guest")
-    public ResponseEntity<ReservationResponseDTO> getGuestReservation(
-            @RequestParam Integer reId, @RequestParam String phone) {
-        ReservationResponseDTO reservation = reservationService.findGuestReservation(reId, phone);
+    public ResponseEntity<ReservationResponseDTO> getGuestReservationByOrderId(
+            @RequestParam String orderId, @RequestParam String phone) {
+        
+        ReservationResponseDTO reservation = reservationService.findGuestReservationByOrderId(orderId, phone);
         if (reservation == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(reservation);
-    }
-
-    @GetMapping("/guest/detail")
-    public ResponseEntity<ReservationResponseDTO> getGuestReservationDetail(
-            @RequestParam Integer reservationId) {
-        Reservation reservation = reservationService.findReservationById(reservationId);
-        if (reservation == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(new ReservationResponseDTO(reservation));
     }
 
     // 예약 취소

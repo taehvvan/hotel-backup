@@ -6,7 +6,6 @@ import lombok.Getter;
 public class PaymentResponseDTO {
     private final Integer paymentId;
     private final Integer reservationId;
-    private final String orderId;
     private final Long amount;
     private final String reservationStatus;
 
@@ -14,7 +13,6 @@ public class PaymentResponseDTO {
     public PaymentResponseDTO(Payment payment) {
         this.paymentId = payment.getPId();
         this.reservationId = payment.getReservation().getReId();
-        this.orderId = payment.getOrderId();
         this.amount = payment.getAmount();
         this.reservationStatus = payment.getReservation().getStatus();
     }

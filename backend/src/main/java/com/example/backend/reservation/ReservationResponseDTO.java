@@ -15,6 +15,7 @@ public class ReservationResponseDTO {
 
     // Reservation 정보
     private final Integer reservationId;
+    private String orderId;
     private final LocalDate checkIn;
     private final LocalDate checkOut;
     private final int people;
@@ -30,8 +31,9 @@ public class ReservationResponseDTO {
     private final String hotelImage; // 호텔 대표 이미지
 
     // JPQL에서 사용할 생성자
-    public ReservationResponseDTO(Integer reservationId, LocalDate checkIn, LocalDate checkOut, int people, int price, String status, String roomType, String hotelName, String address, String hotelImage) {
+    public ReservationResponseDTO(Integer reservationId, String orderId, LocalDate checkIn, LocalDate checkOut, int people, int price, String status, String roomType, String hotelName, String address, String hotelImage) {
         this.reservationId = reservationId;
+        this.orderId = orderId;
         this.checkIn = checkIn;
         this.checkOut = checkOut;
         this.people = people;
@@ -45,6 +47,7 @@ public class ReservationResponseDTO {
 
     public ReservationResponseDTO(Reservation reservation) {
         this.reservationId = reservation.getReId();
+        this.orderId = reservation.getOrderId();
         this.checkIn = reservation.getCheckin();
         this.checkOut = reservation.getCheckout();
         this.people = reservation.getPeople();

@@ -25,9 +25,14 @@ public class PaymentService {
     @Transactional
     public PaymentResponseDTO completePayment(PaymentRequest request, PrincipalDetails principalDetails) {
 
-        // 1. 예약 정보 조회 및 유효성 검증
-        Reservation reservation = reservationRepository.findById(request.getReId())
-                .orElseThrow(() -> new RuntimeException("결제할 예약 정보를 찾을 수 없습니다. ID: " + request.getReId()));
+        // 1. 결제사가 전달한 orderId로 예약을 조회합니다.
+        Reservation reservation = reservationRepository.findByOrderId(request.getOrderId())
+                .orElseThrow(() -> new RuntimeException("주문번호에 해당하는 예약 정보를 찾을 수 없습니다. Order ID: " + request.getOrderId()));
+
+        // 2. [검증 추가] 요청된 금액과 실제 예약 금액이 일치하는지 확인합니다.
+        if (reservation.getPrice() != request.getAmount()) {
+            throw new IllegalStateException("요청된 결제 금액이 예약 금액과 일치하지 않습니다.");
+        }
 
         // ✅ [상태 검증 추가] '예약 중' 상태일 때만 결제를 진행하도록 방어 로직을 추가합니다.
         if (!"예약 중".equals(reservation.getStatus())) {
@@ -65,13 +70,12 @@ public class PaymentService {
 
         // 5. 결제 정보 생성
         Payment payment = Payment.builder()
-                .user(user)
+                .user(reservation.getUser())
                 .reservation(reservation)
                 .room(reservation.getRoom())
                 .payMethod(request.getPayMethod())
                 .phone(request.getPhone())
                 .paymentKey(request.getPaymentKey())
-                .orderId(request.getOrderId())
                 .amount(request.getAmount())
                 .build();
 
@@ -94,8 +98,8 @@ public class PaymentService {
         System.out.println("Toss Payments 승인 API 호출 시뮬레이션 - 성공");
     }
 
-    public ReservationResponseDTO findReservationForGuest(Integer reId, String phone) {
-        return paymentRepository.findByReservation_ReIdAndPhone(reId, phone)
+    public ReservationResponseDTO findReservationForGuest(String orderId, String phone) {
+        return paymentRepository.findByReservation_OrderIdAndPhone(orderId, phone)
                 .map(payment -> new ReservationResponseDTO(payment.getReservation()))
                 .orElse(null);
     }

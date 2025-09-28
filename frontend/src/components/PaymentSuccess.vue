@@ -5,7 +5,7 @@
         <p>예약이 정상적으로 처리되었습니다. 이용해주셔서 감사합니다.</p>
         
         <div class="info-box" v-if="orderId">
-            <strong>주문번호:</strong> {{ orderId }}
+          <strong>예약 번호:</strong> {{ orderId }}
         </div>
         <div class="button-group">
           <button class="btn-home" @click="goHome">홈으로 돌아가기</button>
@@ -29,10 +29,16 @@
 
     onMounted(() => {
       const token = localStorage.getItem('accessToken');
-    // URL 쿼리에서 orderId를 가져옵니다.
+
+    // 1. URL 쿼리에서 orderId를 가져와 ref에 할당합니다.
     orderId.value = route.query.orderId || '';
-    console.log('결제 성공 orderId:', orderId.value);
+    
+    // 2. (선택) 콘솔에 orderId를 출력하여 확인합니다.
+    console.log('결제 성공 페이지 로드, 예약 번호:', orderId.value);
+    
+    // 3. 불필요해진 로컬 스토리지의 예약 정보를 삭제합니다.
     bookingStore.clearBooking();
+    
     console.log('localStorage의 예약 정보가 삭제되었습니다.');
     // 이 곳에서 서버로 결제 완료 사실을 알리는 API를 호출할 수도 있습니다 (선택 사항).
     });

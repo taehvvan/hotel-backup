@@ -39,8 +39,8 @@ const handleBookingCheck = async () => {
   try {
     const response = await axios.get('http://localhost:8888/api/reservations/guest', {
       params: {
+        orderId: bookingNumber.value,
         phone: phoneNumber.value,
-        reId: bookingNumber.value,
       },
     });
 
@@ -57,18 +57,7 @@ const handleBookingCheck = async () => {
     // state를 통해 예약 정보를 넘겨줍니다.
     router.push({
       name: 'GuestBookingDetail',
-      query: {
-        reservationId: reservation.reservationId,
-        checkIn: reservation.checkIn,
-        checkOut: reservation.checkOut,
-        people: reservation.people,
-        price: reservation.price,
-        status: reservation.status,
-        roomType: reservation.roomType,
-        hotelName: reservation.hotelName,
-        address: reservation.address,
-        hotelImage: reservation.hotelImage
-      }
+      params: { orderId: reservation.orderId }, // URL 경로의 파라미터로 전달
     });
     console.log('state로 전달된 예약 정보:', reservation);
   } catch (error) {

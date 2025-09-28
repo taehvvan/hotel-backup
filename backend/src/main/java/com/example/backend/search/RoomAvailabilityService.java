@@ -56,6 +56,10 @@ public class RoomAvailabilityService {
     @Transactional
     public void reserveRoom(Integer rId, LocalDate checkin, LocalDate checkout, int quantity) {
 
+        if (rId == null || checkin == null || checkout == null) {
+            throw new IllegalArgumentException("객실 재고를 차감하기 위한 필수 정보(roomId, checkin, checkout)가 누락되었습니다.");
+        }
+
         // 1. 재고 차감의 기준이 되는 원본 객실 정보를 가져옵니다.
         Room room = roomRepository.findById(rId)
                 .orElseThrow(() -> new RuntimeException("객실 정보를 찾을 수 없습니다. ID: " + rId));
